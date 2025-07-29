@@ -1,0 +1,62 @@
+/* Navbar.css - Design minimaliste professionnel JOBGATE */
+
+.navbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 70px;
+  display: flex;
+  align-items: center;
+}
+
+.navbar-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+}
+
+/* Logo Section */
+.navbar-logo {
+  display: flex;
+  align-items: center;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  height: 24px;
+}
+
+.logo-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1b73e8;
+  letter-spacing: -0.5px;
+}
+
+/* Quand vous ajouterez le vrai logo */
+.logo-container img {
+  height: 24px;
+  width: auto;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .navbar-container {
+    padding: 0 16px;
+  }
+
+  .logo-text {
+    font-size: 12px;
+  }
+
+  .logo-container {
+    height: 20px;
+  }
+}
