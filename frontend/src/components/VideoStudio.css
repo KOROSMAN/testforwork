@@ -163,6 +163,17 @@
   font-size: 0.9rem;
   min-width: auto;
 }
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.btn:disabled:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
 .recording-indicator {
   position: absolute;
   top: 15px;
@@ -205,20 +216,23 @@
 
 .controls-ready,
 .controls-recording,
-.controls-preview {
+.controls-preview,
+.controls-quality {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 15px;
 }
 
-.controls-preview {
+.controls-preview,
+.controls-quality {
   flex-direction: row;
   justify-content: center;
   gap: 20px;
 }
 
-.controls-preview p {
+.controls-preview p,
+.controls-quality p {
   width: 100%;
   text-align: center;
   margin-top: 10px;
@@ -346,7 +360,8 @@
     height: auto;
   }
   
-  .controls-preview {
+  .controls-preview,
+  .controls-quality {
     flex-direction: column;
     gap: 15px;
   }

@@ -1,0 +1,253 @@
+/* QualityChecker.css - Styles pour les tests qualité IA */
+
+.quality-checker {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(27, 115, 232, 0.1);
+  border: 2px solid #e2e8f0;
+  margin: 20px 0;
+}
+
+/* Header avec score global */
+.quality-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f7fafc;
+}
+
+.quality-header h3 {
+  color: #1B73E8;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.overall-score {
+  display: flex;
+  align-items: center;
+}
+
+.score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.score-circle.ready {
+  background: linear-gradient(135deg, #38a169, #48bb78);
+  color: white;
+  box-shadow: 0 4px 20px rgba(56, 161, 105, 0.3);
+}
+
+.score-circle.not-ready {
+  background: linear-gradient(135deg, #e53e3e, #fc8181);
+  color: white;
+  box-shadow: 0 4px 20px rgba(229, 62, 62, 0.3);
+}
+
+.score-number {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  opacity: 0.9;
+}
+
+/* Liste des vérifications */
+.quality-checks {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.quality-indicator {
+  padding: 16px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.quality-indicator.success {
+  background: #f0fff4;
+  border-color: #38a169;
+}
+
+.quality-indicator.warning {
+  background: #fffbf0;
+  border-color: #ed8936;
+}
+
+.quality-indicator.error {
+  background: #fef5f5;
+  border-color: #e53e3e;
+}
+
+.quality-indicator.checking {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.indicator-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.indicator-icon {
+  font-size: 1.2rem;
+}
+
+.indicator-label {
+  font-weight: 600;
+  color: #2d3748;
+  flex: 1;
+}
+
+.indicator-score {
+  font-weight: 700;
+  color: #1B73E8;
+  font-size: 0.9rem;
+}
+
+.indicator-progress {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  height: 100%;
+  transition: width 0.5s ease;
+  border-radius: 3px;
+}
+
+.quality-indicator.success .progress-bar {
+  background: linear-gradient(90deg, #38a169, #48bb78);
+}
+
+.quality-indicator.warning .progress-bar {
+  background: linear-gradient(90deg, #ed8936, #f6ad55);
+}
+
+.quality-indicator.error .progress-bar {
+  background: linear-gradient(90deg, #e53e3e, #fc8181);
+}
+
+.quality-indicator.checking .progress-bar {
+  background: linear-gradient(90deg, #cbd5e0, #e2e8f0);
+  animation: pulse 2s infinite;
+}
+
+.indicator-message {
+  font-size: 0.9rem;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+/* Statut global */
+.quality-status {
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.status-ready {
+  background: linear-gradient(135deg, #f0fff4, #c6f6d5);
+  color: #22543d;
+  border: 2px solid #38a169;
+}
+
+.status-not-ready {
+  background: linear-gradient(135deg, #fef5f5, #fed7d7);
+  color: #742a2a;
+  border: 2px solid #e53e3e;
+}
+
+.status-icon {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+.status-text {
+  font-size: 1rem;
+}
+
+/* Animations */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+/* Tips section */
+.quality-tips {
+  margin-top: 20px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+  border-radius: 12px;
+  border: 1px solid #0ea5e9;
+}
+
+.tips-header {
+  font-weight: 600;
+  color: #0c4a6e;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.tips-list {
+  margin: 0;
+  padding-left: 16px;
+  color: #0f172a;
+}
+
+.tips-list li {
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+  color: #475569;
+}
+@media (max-width: 768px) {
+  .quality-checker {
+    padding: 16px;
+    margin: 10px 0;
+  }
+  
+  .quality-header {
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+  }
+  
+  .score-circle {
+    width: 70px;
+    height: 70px;
+  }
+  
+  .score-number {
+    font-size: 1.5rem;
+  }
+  
+  .indicator-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

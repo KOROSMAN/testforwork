@@ -17,9 +17,18 @@ This project adds a native video recording studio to JOBGATE, allowing candidate
 - Responsive Design: Works on desktop and mobile
 - Progress Indicators: Clear 3-step workflow
 
+### 🎯 Feature 2: Quality Test ✅
+Branch: feature/quality-tests
+- TensorFlow Integration: Real-time analysis of video and audio quality
+- Camera & Microphone Check: Verifies device availability and access
+- Audio Quality Detection: Background noise, clarity, and volume feedback
+- Video Positioning: Ensures face is centered and properly framed
+- Lighting Evaluation: Detects under/overexposure and poor lighting conditions
+- Live Suggestions: On-screen guidance to improve quality during setup
+
 ## 🛠️ Tech Stack
 
-- **Frontend**: React.js + react-webcam
+- **Frontend**: React.js + react-webcam + tensorflow/tfjs + @tensorflow-models/face-landmarks-detection
 - **Backend**: Django (Python) - *Coming in Feature 4*
 - **Database**: PostgreSQL - *Coming in Feature 4*
 - **Video Capture**: WebRTC + getUserMedia API
