@@ -1,8 +1,16 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import './VideoStudio.css';
 
-const VideoStudio = () => {
+const VideoStudio = ({
+  // Props d'intégration JOBGATE (optionnelles pour notre développement)
+  userId = 'demo-user',
+  userName = 'Candidat',
+  userProfile = null,
+  onVideoSaved = null,
+  onCVUpdateSuggested = null,
+  apiEndpoint = '/api/videos'
+}) => {
   const webcamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const [capturing, setCapturing] = useState(false);
@@ -26,6 +34,14 @@ const VideoStudio = () => {
     positioning: { score: 0, status: 'checking', message: 'Checking position...' }
   });
   
+  // États pour le timer
+  const [recordingTime, setRecordingTime] = useState(0);
+  const timerRef = useRef(null);
+  const maxRecordingTime = 90; // 90 secondes
+  
+  // États pour les instructions interactives
+  const [showInstructions, setShowInstructions] = useState(true);
+  
   // Références pour l'analyse audio
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -42,6 +58,83 @@ const VideoStudio = () => {
 
   const audioConstraints = {
     deviceId: selectedAudioDevice ? { exact: selectedAudioDevice } : undefined
+  };
+
+  // Timer pour l'enregistrement
+  useEffect(() => {
+    if (capturing) {
+      timerRef.current = setInterval(() => {
+        setRecordingTime(prevTime => {
+          const newTime = prevTime + 1;
+          
+          // Arrêt automatique à 90 secondes
+          if (newTime >= maxRecordingTime) {
+            handleStopRecording();
+            return maxRecordingTime;
+          }
+          
+          return newTime;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    // Cleanup
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [capturing]);
+
+  // Formater le temps pour l'affichage
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Instructions interactives par étape de temps
+  const recordingInstructions = [
+    {
+      timeStart: 0,
+      timeEnd: 20,
+      title: "Introduction",
+      message: "Présentez-vous clairement : nom, formation, année d'étude",
+      tip: "Regardez la caméra et souriez !"
+    },
+    {
+      timeStart: 20,
+      timeEnd: 45,
+      title: "Parcours académique",
+      message: "Parlez de votre formation, vos spécialisations et projets marquants",
+      tip: "Soyez concret avec des exemples"
+    },
+    {
+      timeStart: 45,
+      timeEnd: 70,
+      title: "Compétences & motivations", 
+      message: "Mettez en avant vos compétences clés et votre motivation professionnelle",
+      tip: "Montrez votre passion pour le domaine"
+    },
+    {
+      timeStart: 70,
+      timeEnd: 90,
+      title: "Conclusion",
+      message: "Terminez par vos objectifs professionnels et votre disponibilité",
+      tip: "Restez positif et confiant !"
+    }
+  ];
+
+  // Obtenir l'instruction actuelle basée sur le temps
+  const getCurrentInstruction = () => {
+    return recordingInstructions.find(
+      instruction => recordingTime >= instruction.timeStart && recordingTime < instruction.timeEnd
+    ) || recordingInstructions[recordingInstructions.length - 1];
   };
 
   // Récupérer la liste des périphériques
@@ -65,7 +158,7 @@ const VideoStudio = () => {
   };
 
   // Charger les périphériques au montage du composant
-  React.useEffect(() => {
+  useEffect(() => {
     getDevices();
   },);
 
@@ -106,14 +199,13 @@ const VideoStudio = () => {
     }
   };
 
-  // Analyser la détection faciale (beaucoup plus strict)
+  // Analyser la détection faciale
   const analyzeFaceDetection = (videoElement) => {
     if (!videoElement || !videoElement.videoWidth || !videoElement.videoHeight) {
       return { score: 0, status: 'error', message: 'Camera not ready' };
     }
 
     try {
-      // Créer un canvas pour analyser l'image
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = 160;
@@ -122,7 +214,6 @@ const VideoStudio = () => {
       ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Analyser la variance des pixels (détecte si image figée ou noire)
       let totalVariance = 0;
       let averageBrightness = 0;
       let pixelCount = 0;
@@ -138,7 +229,6 @@ const VideoStudio = () => {
       
       averageBrightness = averageBrightness / pixelCount;
       
-      // Calculer la variance pour détecter du mouvement/contenu
       for (let i = 0; i < imageData.data.length; i += 4) {
         const r = imageData.data[i];
         const g = imageData.data[i + 1];
@@ -149,32 +239,27 @@ const VideoStudio = () => {
       
       const variance = totalVariance / pixelCount;
       
-      // Détection basée sur variance et luminosité
       let score = 0;
       let status = 'error';
       let message = '';
       
       if (averageBrightness < 10) {
-        // Image très sombre ou noire
         score = 5;
         status = 'error';
-        message = 'Camera blocked or very dark (5%)';
+        message = 'Camera blocked or very dark';
       } else if (variance < 100) {
-        // Image uniforme, probablement pas de visage
         score = 25;
         status = 'error';
-        message = 'No face detected - Position yourself (25%)';
+        message = 'No face detected - Position yourself';
       } else if (variance < 500) {
-        // Peu de détails, visage partiellement visible
         score = 60;
         status = 'warning';
-        message = 'Face partially visible (60%)';
+        message = 'Face partially visible';
       } else {
-        // Bonne variance, visage probable
         const qualityScore = Math.min(95, Math.max(70, Math.round(70 + (variance / 50))));
         score = qualityScore;
         status = 'success';
-        message = `Face detected ✅ (${score}%)`;
+        message = 'Face detected';
       }
       
       return { score, status, message };
@@ -184,7 +269,7 @@ const VideoStudio = () => {
     }
   };
 
-  // Analyser la luminosité (Canvas API)
+  // Analyser la luminosité
   const analyzeLighting = (videoElement) => {
     if (!videoElement || !videoElement.videoWidth) {
       return { score: 0, status: 'checking', message: 'Preparing analysis...' };
@@ -217,16 +302,16 @@ const VideoStudio = () => {
       let status = 'warning';
       
       if (brightness < 60) {
-        score = Math.round((brightness / 60) * 70); // 0-70
-        message = `Too dark (${score}%) - Move to brighter area`;
+        score = Math.round((brightness / 60) * 70);
+        message = 'Too dark - Move to brighter area';
         status = 'error';
       } else if (brightness > 200) {
-        score = Math.round(100 - ((brightness - 200) / 55) * 30); // 70-100
-        message = `Too bright (${score}%) - Reduce direct light`;
+        score = Math.round(100 - ((brightness - 200) / 55) * 30);
+        message = 'Too bright - Reduce direct light';
         status = 'warning';
       } else {
-        score = Math.round(70 + ((brightness - 60) / 140) * 30); // 70-100
-        message = `Lighting optimal ✅ (${score}%)`;
+        score = Math.round(70 + ((brightness - 60) / 140) * 30);
+        message = 'Lighting optimal';
         status = 'success';
       }
       
@@ -240,14 +325,13 @@ const VideoStudio = () => {
     }
   };
 
-  // Analyser l'audio avec vraie détection de déconnexion (amélioré)
+  // Analyser l'audio
   const analyzeAudio = () => {
-    // Vérifier si le microphone est connecté
     if (!microphoneConnected) {
       return { 
         score: 0, 
         status: 'error', 
-        message: 'Microphone disconnected - Please reconnect and refresh (0%)' 
+        message: 'Microphone disconnected - Please reconnect and refresh' 
       };
     }
 
@@ -256,7 +340,6 @@ const VideoStudio = () => {
     }
 
     try {
-      // Vérifier l'état de l'AudioContext
       if (audioContextRef.current.state === 'suspended') {
         audioContextRef.current.resume();
       }
@@ -267,32 +350,29 @@ const VideoStudio = () => {
       const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
       const maxLevel = Math.max(...dataArray);
       
-      // Détection plus fine des problèmes micro
       if (maxLevel === 0 && average === 0) {
         return { 
           score: 0, 
           status: 'error', 
-          message: 'Microphone not working - Check connection and permissions (0%)' 
+          message: 'Microphone not working - Check connection and permissions' 
         };
       }
       
-      // Détecter si le micro est étouffé (comparaison avec niveau précédent)
       if (lastAudioLevel > 25 && average < 2 && maxLevel < 5) {
         setLastAudioLevel(average);
         return { 
           score: 10, 
           status: 'error', 
-          message: 'Microphone blocked or muted - Remove obstruction (10%)' 
+          message: 'Microphone blocked or muted - Remove obstruction' 
         };
       }
       
-      // Détecter niveau anormalement bas
       if (average < 1 && maxLevel < 3) {
         setLastAudioLevel(average);
         return { 
           score: 5, 
           status: 'error', 
-          message: 'No audio signal - Check microphone settings (5%)' 
+          message: 'No audio signal - Check microphone settings' 
         };
       }
       
@@ -304,28 +384,27 @@ const VideoStudio = () => {
       
       if (average < 5) {
         score = 20;
-        message = `Very low audio (${score}%) - Increase microphone volume`;
+        message = 'Very low audio - Increase microphone volume';
         status = 'error';
       } else if (average < 12) {
         score = 45;
-        message = `Low audio (${score}%) - Speak louder or move closer to mic`;
+        message = 'Low audio - Speak louder or move closer to mic';
         status = 'warning';
       } else if (average < 18) {
         score = 65;
-        message = `Moderate audio (${score}%) - Good, but could be clearer`;
+        message = 'Moderate audio - Good, but could be clearer';
         status = 'warning';
       } else if (average > 150) {
         score = 40;
-        message = `Audio too loud (${score}%) - Reduce volume or move away`;
+        message = 'Audio too loud - Reduce volume or move away';
         status = 'error';
       } else if (average > 110) {
         score = 70;
-        message = `Audio loud (${score}%) - Consider reducing volume slightly`;
+        message = 'Audio loud - Consider reducing volume slightly';
         status = 'warning';
       } else {
-        // Zone optimale : 18-110
-        score = Math.round(70 + ((average - 18) / 92) * 30); // 70-100
-        message = `Audio excellent ✅ (${score}%)`;
+        score = Math.round(70 + ((average - 18) / 92) * 30);
+        message = 'Audio excellent';
         status = 'success';
       }
       
@@ -340,14 +419,13 @@ const VideoStudio = () => {
     }
   };
 
-  // Analyser le positionnement (plus équilibré)
+  // Analyser le positionnement
   const analyzePositioning = (faceScore, lightingScore, videoElement) => {
     if (!videoElement || !videoElement.videoWidth) {
       return { score: 0, status: 'error', message: 'Camera not ready' };
     }
 
     try {
-      // Analyser la stabilité et le centrage basé sur l'image
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = 160;
@@ -356,7 +434,6 @@ const VideoStudio = () => {
       ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Analyser la distribution des pixels pour détecter le centrage
       let leftBrightness = 0, rightBrightness = 0, topBrightness = 0, bottomBrightness = 0;
       let leftPixels = 0, rightPixels = 0, topPixels = 0, bottomPixels = 0;
       
@@ -365,7 +442,6 @@ const VideoStudio = () => {
           const index = (y * canvas.width + x) * 4;
           const brightness = (imageData.data[index] + imageData.data[index + 1] + imageData.data[index + 2]) / 3;
           
-          // Analyser par zones
           if (x < canvas.width / 2) {
             leftBrightness += brightness;
             leftPixels++;
@@ -389,50 +465,43 @@ const VideoStudio = () => {
       topBrightness /= topPixels;
       bottomBrightness /= bottomPixels;
       
-      // Calculer l'équilibre (centrage) - Seuils plus permissifs
       const horizontalBalance = Math.abs(leftBrightness - rightBrightness);
       const verticalBalance = Math.abs(topBrightness - bottomBrightness);
       const totalImbalance = horizontalBalance + verticalBalance;
       
-      // Score basé sur l'équilibre et les autres métriques - Plus tolérant
       let positionScore = 0;
       let status = 'error';
       let message = '';
       
       if (faceScore < 20) {
-        // Si pas de visage, position forcément mauvaise
         positionScore = 30;
         status = 'error';
-        message = 'No face detected - Cannot assess position (30%)';
+        message = 'No face detected - Cannot assess position';
       } else if (totalImbalance > 80) {
-        // Très très décentré (seuil augmenté de 50 à 80)
         positionScore = 55;
         status = 'warning';
-        message = 'Quite off-center - Try to center yourself (55%)';
+        message = 'Quite off-center - Try to center yourself';
       } else if (totalImbalance > 40) {
-        // Légèrement décentré (seuil augmenté de 25 à 40)
         positionScore = 75;
         status = 'success';
-        message = 'Good position ✅ (75%)';
+        message = 'Good position';
       } else {
-        // Bien centré
-        const balanceScore = Math.round(90 - (totalImbalance / 2)); // Plus généreux
-        const faceBonus = Math.round(faceScore * 0.1); // Bonus réduit
+        const balanceScore = Math.round(90 - (totalImbalance / 2));
+        const faceBonus = Math.round(faceScore * 0.1);
         positionScore = Math.min(95, balanceScore + faceBonus);
         status = 'success';
-        message = `Position excellent ✅ (${positionScore}%)`;
+        message = 'Position excellent';
       }
       
       return { score: Math.max(30, positionScore), status, message };
       
     } catch (error) {
-      // Fallback plus généreux basé sur les autres scores
       const avgScore = Math.round((faceScore + lightingScore) / 2);
-      const generousScore = Math.max(65, avgScore); // Score minimum plus élevé
+      const generousScore = Math.max(65, avgScore);
       return { 
         score: generousScore, 
         status: generousScore > 75 ? 'success' : 'warning', 
-        message: `Position estimated (${generousScore}%)` 
+        message: 'Position estimated' 
       };
     }
   };
@@ -459,12 +528,10 @@ const VideoStudio = () => {
 
     setQualityDetails(newDetails);
 
-    // Calculer le score global (plus strict)
     const scores = [faceResult.score, lightingResult.score, audioResult.score, positioningResult.score];
     const avgScore = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
     
     setQualityScore(avgScore);
-    // Seuil plus strict : 80 au lieu de 75
     setIsQualityReady(avgScore >= 80);
   };
 
@@ -473,21 +540,18 @@ const VideoStudio = () => {
     console.log('Starting quality check...');
     setCurrentStep('quality-check');
     
-    // Setup audio analysis
     await setupAudioAnalysis();
     
-    // Commencer l'analyse en temps réel
     const analysisInterval = setInterval(() => {
       runQualityAnalysis();
-    }, 1000); // Analyse toutes les secondes
+    }, 1000);
 
-    // Nettoyer l'intervalle après 30 secondes ou quand on change d'étape
     setTimeout(() => {
       clearInterval(analysisInterval);
     }, 30000);
   };
 
-  // Démarrer l'enregistrement (après validation qualité)
+  // Démarrer l'enregistrement
   const handleStartRecording = () => {
     if (currentStep === 'quality-check' && !isQualityReady) {
       alert('Please improve video quality before recording (score must be 80+)');
@@ -497,6 +561,8 @@ const VideoStudio = () => {
     setCapturing(true);
     setCurrentStep('recording');
     setRecordedChunks([]);
+    setRecordingTime(0); // Reset timer
+    setShowInstructions(true); // Réactiver les instructions
     
     if (webcamRef.current && webcamRef.current.stream) {
       const stream = webcamRef.current.stream;
@@ -539,7 +605,7 @@ const VideoStudio = () => {
   };
 
   // Créer l'URL de la vidéo enregistrée
-  React.useEffect(() => {
+  useEffect(() => {
     if (recordedChunks.length > 0 && currentStep === 'preview') {
       const blob = new Blob(recordedChunks, { type: "video/webm" });
       const url = URL.createObjectURL(blob);
@@ -556,6 +622,7 @@ const VideoStudio = () => {
     setIsQualityReady(false);
     setMicrophoneConnected(true);
     setLastAudioLevel(0);
+    setRecordingTime(0);
     setQualityDetails({
       face: { score: 0, status: 'checking', message: 'Detecting camera...' },
       lighting: { score: 0, status: 'checking', message: 'Analyzing lighting...' },
@@ -563,7 +630,6 @@ const VideoStudio = () => {
       positioning: { score: 0, status: 'checking', message: 'Checking position...' }
     });
     
-    // Nettoyer l'audio context
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
@@ -576,7 +642,7 @@ const VideoStudio = () => {
 
   // Valider l'enregistrement
   const handleValidate = () => {
-    alert('Video saved successfully! (Feature 2: Backend storage coming soon)');
+    alert('Video saved successfully! (Backend storage coming soon)');
     handleReset();
   };
 
@@ -602,43 +668,6 @@ const VideoStudio = () => {
               <div className="preview-overlay">
                 <span className="preview-label">Preview</span>
               </div>
-
-        {/* Conseils professionnels - Pendant Quality Check ET Recording */}
-        {(currentStep === 'quality-check' || currentStep === 'recording') && (
-          <div style={{
-            padding: '16px', 
-            margin: '20px 0',
-            background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', 
-            borderRadius: '12px', 
-            border: '1px solid #cbd5e0'
-          }}>
-            <h4 style={{color: '#2d3748', marginBottom: '12px', fontSize: '1rem'}}>
-              🎯 Professional Recording Tips
-            </h4>
-            <div style={{display: 'grid', gap: '8px', fontSize: '0.85rem', color: '#4a5568'}}>
-              <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-                <span>👤</span>
-                <span><em>Try to stay centered in the frame for better presence</em></span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-                <span>💡</span>
-                <span><em>Natural lighting from a window works better than overhead lights</em></span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-                <span>🎤</span>
-                <span><em>Speak clearly and at normal volume - avoid whispering or shouting</em></span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-                <span>📱</span>
-                <span><em>Keep your device stable and at eye level for professional appearance</em></span>
-              </div>
-              <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-                <span>👔</span>
-                <span><em>Maintain good posture and make eye contact with the camera</em></span>
-              </div>
-            </div>
-          </div>
-        )}
             </div>
           ) : (
             <div className="webcam-container">
@@ -652,10 +681,37 @@ const VideoStudio = () => {
                 className="webcam"
                 muted={true}
               />
+              
+              {/* Timer pendant l'enregistrement */}
+              {capturing && (
+                <div className="recording-timer">
+                  <div className="timer-display">
+                    <span className="timer-text">{formatTime(recordingTime)} / {formatTime(maxRecordingTime)}</span>
+                    <div className="timer-bar">
+                      <div 
+                        className="timer-progress" 
+                        style={{ width: `${(recordingTime / maxRecordingTime) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bouton pour réafficher les instructions si masquées */}
+              {capturing && !showInstructions && (
+                <button 
+                  className="show-instructions-btn"
+                  onClick={() => setShowInstructions(true)}
+                  title="Afficher les instructions"
+                >
+                  💬
+                </button>
+              )}
+              
               {capturing && (
                 <div className="recording-indicator">
                   <div className="recording-dot"></div>
-                  <span>Recording in progress...</span>
+                  <span>Recording in progress</span>
                 </div>
               )}
               
@@ -664,7 +720,7 @@ const VideoStudio = () => {
                 onClick={() => setShowDeviceSettings(!showDeviceSettings)}
                 title="Device Settings"
               >
-                ⚙️
+                ⚙
               </button>
               
               {showDeviceSettings && (
@@ -703,13 +759,64 @@ const VideoStudio = () => {
                     className="btn btn-secondary btn-small"
                     onClick={() => setShowDeviceSettings(false)}
                   >
-                    ✅ Apply
+                    Apply
                   </button>
                 </div>
               )}
             </div>
           )}
         </div>
+
+        {/* Instructions interactives SOUS la vidéo pendant l'enregistrement */}
+        {capturing && showInstructions && (
+          <div className="interactive-instructions-bottom">
+            <div className="instruction-content">
+              <div className="instruction-header">
+                <span className="instruction-step">{getCurrentInstruction().title}</span>
+                <button 
+                  className="toggle-instructions-btn"
+                  onClick={() => setShowInstructions(false)}
+                  title="Masquer les instructions"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="instruction-message">
+                {getCurrentInstruction().message}
+              </div>
+              <div className="instruction-tip">
+                💡 {getCurrentInstruction().tip}
+              </div>
+              <div className="instruction-progress">
+                <div className="progress-steps">
+                  {recordingInstructions.map((instruction, index) => (
+                    <div 
+                      key={index}
+                      className={`progress-step ${
+                        recordingTime >= instruction.timeStart ? 'completed' : ''
+                      } ${
+                        recordingTime >= instruction.timeStart && recordingTime < instruction.timeEnd ? 'active' : ''
+                      }`}
+                    ></div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bouton pour réafficher les instructions si masquées */}
+        {capturing && !showInstructions && (
+          <div className="show-instructions-bottom">
+            <button 
+              className="show-instructions-btn-bottom"
+              onClick={() => setShowInstructions(true)}
+              title="Afficher les instructions"
+            >
+              💬 Afficher le guide
+            </button>
+          </div>
+        )}
 
         {/* Contrôles */}
         <div className="controls-container">
@@ -719,11 +826,22 @@ const VideoStudio = () => {
                 onClick={handleStartQualityCheck}
                 className="btn btn-primary btn-large"
               >
-                🤖 Start AI Quality Check
+                Start Quality Check
               </button>
               <p className="help-text">
                 AI will analyze your setup before recording
               </p>
+              
+              {/* Brief en dessous du texte d'aide */}
+              <div className="recording-brief-bottom">
+                <h4>Guide de présentation (90 secondes)</h4>
+                <div className="brief-steps-horizontal">
+                  <span className="brief-step-compact">0-20s: Présentez-vous (nom, formation, année)</span>
+                  <span className="brief-step-compact">20-45s: Parcours académique et projets</span>
+                  <span className="brief-step-compact">45-70s: Compétences clés et motivations</span>
+                  <span className="brief-step-compact">70-90s: Objectifs et disponibilité</span>
+                </div>
+              </div>
             </div>
           )}
 
@@ -734,17 +852,17 @@ const VideoStudio = () => {
                 className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
                 disabled={!isQualityReady}
               >
-                {isQualityReady ? '🎥 Start Recording' : '⏳ Improve Quality First'}
+                {isQualityReady ? 'Start Recording' : 'Improve Quality First'}
               </button>
               <button 
                 onClick={handleReset}
                 className="btn btn-secondary"
               >
-                🔄 Skip AI Tests
+                Skip Tests
               </button>
               <p className="help-text">
                 {isQualityReady 
-                  ? 'Excellent! You\'re ready to record a professional video'
+                  ? 'Ready to record professional video'
                   : `Current score: ${qualityScore}/100 (need 80+)`
                 }
               </p>
@@ -752,54 +870,17 @@ const VideoStudio = () => {
           )}
 
           {currentStep === 'recording' && (
-  <div className="controls-recording">
-    <button 
-      onClick={handleStopRecording}
-      className="btn btn-danger btn-large">
-      ⏹️ Stop Recording
-    </button>
-    <p className="help-text">
-      Present yourself professionally
-    </p>
-
-    <div style={{
-      padding: '16px', 
-      margin: '20px 0',
-      background: 'linear-gradient(135deg, #f8fafc, #e2e8f0)', 
-      borderRadius: '12px', 
-      border: '1px solid #cbd5e0'
-    }}>
-      <h4 style={{color: '#2d3748', marginBottom: '12px', fontSize: '1rem'}}>
-        🎯 Professional Recording Tips
-      </h4>
-      <div style={{display: 'grid', gap: '8px', fontSize: '0.85rem', color: '#4a5568'}}>
-        <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-          <span>👤</span>
-          <span><em>Try to stay centered in the frame for better presence</em></span>
-        </div>
-        <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-          <span>💡</span>
-          <span><em>Natural lighting from a window works better than overhead lights</em></span>
-        </div>
-        <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-          <span>🎤</span>
-          <span><em>Speak clearly and at normal volume - avoid whispering or shouting</em></span>
-        </div>
-        <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-          <span>📱</span>
-          <span><em>Keep your device stable and at eye level for professional appearance</em></span>
-        </div>
-        <div style={{display: 'flex', alignItems: 'flex-start', gap: '8px'}}>
-          <span>👔</span>
-          <span><em>Maintain good posture and make eye contact with the camera</em></span>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
-
-
-          
+            <div className="controls-recording">
+              <button 
+                onClick={handleStopRecording}
+                className="btn btn-danger btn-large">
+                Stop Recording
+              </button>
+              <p className="help-text">
+                Present yourself professionally
+              </p>
+            </div>
+          )}
 
           {currentStep === 'preview' && (
             <div className="controls-preview">
@@ -807,13 +888,13 @@ const VideoStudio = () => {
                 onClick={handleValidate}
                 className="btn btn-success"
               >
-                ✅ Validate this video
+                Validate Video
               </button>
               <button 
                 onClick={handleReset}
                 className="btn btn-secondary"
               >
-                🔄 Record again
+                Record Again
               </button>
               <p className="help-text">
                 Are you satisfied with your recording?
@@ -822,162 +903,54 @@ const VideoStudio = () => {
           )}
         </div>
 
-        {/* Interface qualité - SEULEMENT pendant quality-check */}
+        {/* Interface qualité */}
         {currentStep === 'quality-check' && (
-          <div style={{
-            background: 'white', 
-            padding: '20px', 
-            margin: '20px 0', 
-            borderRadius: '12px',
-            border: '2px solid #1B73E8',
-            boxShadow: '0 4px 20px rgba(27, 115, 232, 0.1)'
-          }}>
-            <h3 style={{color: '#1B73E8', marginBottom: '20px'}}>🔍 AI Quality Analysis</h3>
+          <div className="quality-analysis-panel">
+            <h3>Quality Analysis</h3>
             
-            <div style={{display: 'grid', gap: '15px', marginBottom: '20px'}}>
-              <div style={{
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '12px', 
-                background: qualityDetails.face.status === 'success' ? '#f0fff4' : qualityDetails.face.status === 'warning' ? '#fffbf0' : '#fef5f5', 
-                borderRadius: '8px', 
-                border: `1px solid ${qualityDetails.face.status === 'success' ? '#38a169' : qualityDetails.face.status === 'warning' ? '#ed8936' : '#e53e3e'}`
-              }}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <span>👤 Face Detection</span>
-                  <span style={{fontWeight: 'bold', color: qualityDetails.face.status === 'success' ? '#38a169' : qualityDetails.face.status === 'warning' ? '#ed8936' : '#e53e3e'}}>
-                    {qualityDetails.face.score}% {qualityDetails.face.status === 'success' ? '✅' : qualityDetails.face.status === 'warning' ? '⚠️' : '❌'}
-                  </span>
+            <div className="quality-checks-grid">
+              <div className={`quality-check ${qualityDetails.face.status}`}>
+                <div className="check-header">
+                  <span className="check-label">Face Detection</span>
+                  <span className="check-score">{qualityDetails.face.score}%</span>
                 </div>
-                <span style={{fontSize: '0.8rem', color: '#666', fontStyle: 'italic'}}>
-                  Look directly at the camera
-                </span>
+                <div className="check-message">{qualityDetails.face.message}</div>
               </div>
               
-              <div style={{
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '12px', 
-                background: qualityDetails.lighting.status === 'success' ? '#f0fff4' : qualityDetails.lighting.status === 'warning' ? '#fffbf0' : '#fef5f5', 
-                borderRadius: '8px', 
-                border: `1px solid ${qualityDetails.lighting.status === 'success' ? '#38a169' : qualityDetails.lighting.status === 'warning' ? '#ed8936' : '#e53e3e'}`
-              }}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <span>💡 Lighting</span>
-                  <span style={{fontWeight: 'bold', color: qualityDetails.lighting.status === 'success' ? '#38a169' : qualityDetails.lighting.status === 'warning' ? '#ed8936' : '#e53e3e'}}>
-                    {qualityDetails.lighting.score}% {qualityDetails.lighting.status === 'success' ? '✅' : qualityDetails.lighting.status === 'warning' ? '⚠️' : '❌'}
-                  </span>
+              <div className={`quality-check ${qualityDetails.lighting.status}`}>
+                <div className="check-header">
+                  <span className="check-label">Lighting</span>
+                  <span className="check-score">{qualityDetails.lighting.score}%</span>
                 </div>
-                <span style={{fontSize: '0.8rem', color: '#666', fontStyle: 'italic'}}>
-                  Face a window for natural light
-                </span>
+                <div className="check-message">{qualityDetails.lighting.message}</div>
               </div>
               
-              <div style={{
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '12px', 
-                background: qualityDetails.audio.status === 'success' ? '#f0fff4' : qualityDetails.audio.status === 'warning' ? '#fffbf0' : '#fef5f5', 
-                borderRadius: '8px', 
-                border: `1px solid ${qualityDetails.audio.status === 'success' ? '#38a169' : qualityDetails.audio.status === 'warning' ? '#ed8936' : '#e53e3e'}`
-              }}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <span>🎤 Audio Level</span>
-                  <span style={{fontWeight: 'bold', color: qualityDetails.audio.status === 'success' ? '#38a169' : qualityDetails.audio.status === 'warning' ? '#ed8936' : '#e53e3e'}}>
-                    {qualityDetails.audio.score}% {qualityDetails.audio.status === 'success' ? '✅' : qualityDetails.audio.status === 'warning' ? '⚠️' : '❌'}
-                  </span>
+              <div className={`quality-check ${qualityDetails.audio.status}`}>
+                <div className="check-header">
+                  <span className="check-label">Audio Level</span>
+                  <span className="check-score">{qualityDetails.audio.score}%</span>
                 </div>
-                <span style={{fontSize: '0.8rem', color: '#666', fontStyle: 'italic'}}>
-                  Speak louder or move closer to mic
-                </span>
+                <div className="check-message">{qualityDetails.audio.message}</div>
               </div>
               
-              <div style={{
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '12px', 
-                background: qualityDetails.positioning.status === 'success' ? '#f0fff4' : qualityDetails.positioning.status === 'warning' ? '#fffbf0' : '#fef5f5', 
-                borderRadius: '8px', 
-                border: `1px solid ${qualityDetails.positioning.status === 'success' ? '#38a169' : qualityDetails.positioning.status === 'warning' ? '#ed8936' : '#e53e3e'}`
-              }}>
-                <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
-                  <span>📍 Positioning</span>
-                  <span style={{fontWeight: 'bold', color: qualityDetails.positioning.status === 'success' ? '#38a169' : qualityDetails.positioning.status === 'warning' ? '#ed8936' : '#e53e3e'}}>
-                    {qualityDetails.positioning.score}% {qualityDetails.positioning.status === 'success' ? '✅' : qualityDetails.positioning.status === 'warning' ? '⚠️' : '❌'}
-                  </span>
+              <div className={`quality-check ${qualityDetails.positioning.status}`}>
+                <div className="check-header">
+                  <span className="check-label">Positioning</span>
+                  <span className="check-score">{qualityDetails.positioning.score}%</span>
                 </div>
-                <span style={{fontSize: '0.8rem', color: '#666', fontStyle: 'italic'}}>
-                  Stay centered in frame
-                </span>
+                <div className="check-message">{qualityDetails.positioning.message}</div>
               </div>
             </div>
 
-            <div style={{textAlign: 'center', marginBottom: '20px'}}>
-              <div style={{
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
-                background: isQualityReady ? 'linear-gradient(135deg, #38a169, #48bb78)' : 'linear-gradient(135deg, #e53e3e, #fc8181)',
-                color: 'white',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto 10px',
-                boxShadow: '0 4px 20px rgba(56, 161, 105, 0.3)'
-              }}>
-                <span style={{fontSize: '1.8rem', fontWeight: 'bold'}}>{qualityScore}</span>
-                <span style={{fontSize: '0.9rem'}}>/100</span>
+            <div className="overall-score-section">
+              <div className={`overall-score ${isQualityReady ? 'ready' : 'not-ready'}`}>
+                <span className="score-number">{qualityScore}</span>
+                <span className="score-label">/100</span>
               </div>
-              <p style={{color: isQualityReady ? '#38a169' : '#e53e3e', fontWeight: 'bold', margin: 0}}>
-                {isQualityReady ? '✅ Ready to record!' : '⚠️ Improve quality first'}
+              <p className="score-status">
+                {isQualityReady ? 'Ready to record' : 'Improve quality first'}
               </p>
             </div>
-
-            <div style={{display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap'}}>
-              <button 
-                onClick={() => runQualityAnalysis()}
-                style={{
-                  padding: '12px 24px', 
-                  background: '#1B73E8', 
-                  color: 'white', 
-                  border: 'none', 
-                  borderRadius: '8px',
-                  fontWeight: 'bold',
-                  cursor: 'pointer'
-                }}
-              >
-                🔄 Refresh Analysis
-              </button>
-            </div>
-
-            {/* Messages d'aide dynamiques */}
-            <div style={{marginTop: '15px', padding: '12px', background: '#f0f9ff', borderRadius: '8px', fontSize: '0.9rem', color: '#0c4a6e'}}>
-              <strong>💡 Current Suggestions:</strong>
-              <ul style={{margin: '8px 0', paddingLeft: '16px'}}>
-                {qualityDetails.lighting.status !== 'success' && (
-                  <li>{qualityDetails.lighting.message}</li>
-                )}
-                {qualityDetails.audio.status !== 'success' && (
-                  <li>{qualityDetails.audio.message}</li>
-                )}
-                {qualityDetails.face.status !== 'success' && (
-                  <li>{qualityDetails.face.message}</li>
-                )}
-                {qualityDetails.positioning.status !== 'success' && (
-                  <li>{qualityDetails.positioning.message}</li>
-                )}
-                {isQualityReady && (
-                  <li style={{color: '#38a169', fontWeight: 'bold'}}>✅ All systems ready for recording!</li>
-                )}
-              </ul>
-            </div>
-
-        {/* Conseils professionnels - Pendant Quality Check ET Recording */}
           </div>
         )}
       </div>
@@ -986,16 +959,16 @@ const VideoStudio = () => {
       <div className="status-bar">
         <div className="status-steps">
           <span className={`step ${currentStep === 'ready' ? 'active' : ''}`}>
-            1. Ready
+            Ready
           </span>
           <span className={`step ${currentStep === 'quality-check' ? 'active' : ''}`}>
-            2. AI Quality Check
+            Quality Check
           </span>
           <span className={`step ${currentStep === 'recording' ? 'active' : ''}`}>
-            3. Recording
+            Recording
           </span>
           <span className={`step ${currentStep === 'preview' ? 'active' : ''}`}>
-            4. Preview
+            Preview
           </span>
         </div>
       </div>
