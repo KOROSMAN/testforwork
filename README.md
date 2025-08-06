@@ -1,136 +1,258 @@
-# 🎥 JOBGATE Video Studio
+# JOBGATE Video Studio
 
-Professional video recording module for the JOBGATE recruitment platform.
+## 📹 Description
 
-## 📋 Project Overview
+Studio vidéo intégré pour la plateforme JOBGATE permettant aux candidats d'enregistrer des vidéos de présentation professionnelles avec analyse qualité IA en temps réel.
 
-This project adds a native video recording studio to JOBGATE, allowing candidates to record professional presentation videos directly within the platform, enhancing the recruitment process with a more human and engaging approach.
+### ✨ Fonctionnalités principales
 
-## ✨ Current Features (v1.0)
+- **Studio vidéo intégré** : Enregistrement directement depuis le navigateur
+- **Tests qualité IA** : Analyse automatique de la vidéo, audio, éclairage et positionnement
+- **Instructions interactives** : Guide en temps réel pendant l'enregistrement (90 secondes)
+- **Sélection périphériques** : Choix caméra/microphone
+- **Sauvegarde base de données** : Stockage PostgreSQL avec métadonnées complètes
+- **Interface responsive** : Compatible desktop et mobile
+- **API REST complète** : Backend Django avec endpoints complets
 
-### 🎯 Feature 1: Basic Video Capture ✅
-- WebRTC Video Recording: Native browser-based video capture
-- Device Selection: Choose camera and microphone
-- Real-time Preview: Live video feed during setup
-- Recording Controls: Start, Stop, Preview, Reset
-- Professional UI: JOBGATE-branded interface
-- Responsive Design: Works on desktop and mobile
-- Progress Indicators: Clear 3-step workflow
+## 🏗️ Architecture technique
 
-### 🎯 Feature 2: Quality Test ✅
-Branch: feature/quality-tests
-- TensorFlow Integration: Real-time analysis of video and audio quality
-- Camera & Microphone Check: Verifies device availability and access
-- Audio Quality Detection: Background noise, clarity, and volume feedback
-- Video Positioning: Ensures face is centered and properly framed
-- Lighting Evaluation: Detects under/overexposure and poor lighting conditions
-- Live Suggestions: On-screen guidance to improve quality during setup
+### Frontend (React.js)
+- **React 18** avec hooks modernes
+- **react-webcam** pour capture vidéo
+- **axios** pour communication API
+- **CSS moderne** avec design JOBGATE
 
-## 🛠️ Tech Stack
+### Backend (Django)
+- **Django 5.0+** avec Django REST Framework
+- **PostgreSQL** pour stockage données
+- **Modèles** : Video, QualityCheck, RecordingSession, Analytics
+- **API REST** complète avec upload de fichiers
+- **Admin Django** pour gestion
 
-- **Frontend**: React.js + react-webcam + tensorflow/tfjs + @tensorflow-models/face-landmarks-detection
-- **Backend**: Django (Python) - *Coming in Feature 4*
-- **Database**: PostgreSQL - *Coming in Feature 4*
-- **Video Capture**: WebRTC + getUserMedia API
-- **Styling**: Custom CSS with JOBGATE branding
+### Base de données
+- **PostgreSQL** avec tables optimisées
+- **Stockage fichiers** dans `/media/videos/`
+- **Métadonnées complètes** : durée, qualité, analytics
 
-## 📱 Screenshots
+## 🚀 Installation et Setup
 
-*Feature 1 - Video Capture Interface*
-- Clean, professional video recording interface
-- Device settings panel
-- Real-time recording status
-- Progress workflow indicators
-
-## 🚀 Installation & Setup
-
-### Prerequisites
-- Node.js 16+
+### Prérequis
 - Python 3.8+
+- Node.js 16+
+- PostgreSQL 12+
 - Git
 
-### Frontend Setup
+### 1. Cloner le projet
 ```bash
-# Clone the repository
-git clone [repository-url]
-cd jobgate-video-studio/frontend
-
-# Install dependencies
-npm install
-
-# Start development server
-npm start
-# App will open at http://localhost:3000
+git clone <your-repo-url>
+cd jobgate-video-studio
 ```
 
-### Backend Setup (Coming Soon)
+### 2. Setup Backend (Django)
 ```bash
 cd backend
+
+# Créer environnement virtuel
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate     # Windows
+
+# Installer dépendances
 pip install -r requirements.txt
+```
+
+### 3. Configuration PostgreSQL
+
+**Créer base de données :**
+```sql
+-- Dans psql ou pgAdmin
+CREATE DATABASE video_studio_db;
+CREATE USER video_studio_user WITH PASSWORD 'your_password';
+GRANT ALL PRIVILEGES ON DATABASE video_studio_db TO video_studio_user;
+```
+
+**Configurer `.env` :**
+```bash
+# Créer backend/.env
+DB_NAME=video_studio_db
+DB_USER=postgres
+DB_PASSWORD=your_postgresql_password
+DB_HOST=localhost
+DB_PORT=5432
+
+DEBUG=True
+SECRET_KEY=your-secret-key
+MEDIA_ROOT=media/
+MEDIA_URL=/media/
+```
+
+### 4. Migrations et admin
+```bash
+# Appliquer migrations
+python manage.py makemigrations
+python manage.py migrate
+
+# Créer superuser
+python manage.py createsuperuser
+
+# Lancer serveur
 python manage.py runserver
 ```
 
-## 📈 Development Roadmap
+### 5. Setup Frontend (React)
+```bash
+cd ../frontend
 
-### 🎯 Feature 2: Quality Tests (Next)
-- Automatic quality detection (lighting, audio, framing)
-- Real-time feedback and suggestions
-- Pre-recording quality checks
+# Installer dépendances
+npm install
 
-### 🎯 Feature 3: Interactive Instructions
-- Step-by-step recording guidance
-- Professional presentation tips
-- Dynamic content suggestions
+# Lancer en développement
+npm start
+```
 
-### 🎯 Feature 4: Backend & Storage
-- Django API integration
-- Secure video storage
-- User profile linking
-- PostgreSQL database
+## 📱 Utilisation
 
-### 🎯 Feature 5: Recruiter Interface
-- Secure video playback
-- No-download viewing
-- Candidate profile integration
+### Interface utilisateur
 
-## 🎨 Design Philosophy
+1. **Accéder** : http://localhost:3000
+2. **Test API** : Cliquer "🔗 Test API Connection"
+3. **Analyse qualité** : "Start Quality Check" (score minimum 80%)
+4. **Enregistrement** : "Start Recording" → suivre instructions interactives
+5. **Sauvegarde** : "Save to Database"
 
-- **Professional**: Clean, corporate-ready interface
-- **User-Friendly**: Intuitive 3-step workflow
-- **Responsive**: Mobile and desktop optimized
-- **Branded**: Consistent with JOBGATE visual identity
-- **Accessible**: Clear instructions and feedback
+### Administration
 
-## 🔧 Current Functionality
+- **Admin Django** : http://127.0.0.1:8000/admin/
+- **API Browser** : http://127.0.0.1:8000/api/
+- **pgAdmin** : Gestion base de données
 
-1. **Ready State**: Camera preview with device selection
-2. **Recording State**: Active recording with visual indicators
-3. **Preview State**: Playback recorded video with validation options
+## 🔌 API Endpoints
 
-## 🤝 Contributing
+### Vidéos
+```
+GET    /api/videos/                     # Liste vidéos
+POST   /api/videos/                     # Créer vidéo
+GET    /api/videos/{id}/                # Détail vidéo
+POST   /api/videos/{id}/start_recording/ # Démarrer session
+POST   /api/videos/{id}/stop_recording/  # Arrêter session
+POST   /api/videos/{id}/approve/         # Approuver vidéo
+POST   /api/videos/{id}/link_to_cv/      # Lier au CV
+```
 
-This is an academic project for JOBGATE integration. Development follows an iterative approach with incremental feature releases.
+### Tests qualité
+```
+GET    /api/quality-checks/             # Liste tests
+POST   /api/quality-checks/batch_update/ # Mise à jour batch
+POST   /api/quality-analysis/           # Analyse temps réel
+```
 
-## 📊 Browser Support
+### Upload
+```
+POST   /api/upload/                     # Upload vidéo spécialisé
+```
 
-- ✅ Chrome 60+
-- ✅ Firefox 55+
-- ✅ Safari 11+
-- ✅ Edge 79+
+## 📊 Modèles de données
 
-## 📞 Contact
+### Video
+- Utilisateur, titre, description
+- Fichier vidéo, thumbnail
+- Durée, taille, format, résolution
+- Score qualité global, statut approbation
+- Liens CV, suggestions mise à jour
 
-- **Academic Supervisor**: Pr Youness El Jonhy - y.eljonhy@emsi.ma
-- **Professional Supervisor**: Aouatif BOZAZ - a.bozaz@jobgate.ma
+### QualityCheck
+- Types : face, lighting, audio, positioning
+- Score (0-100), statut, message
+- Détails techniques JSON
+
+### RecordingSession
+- Session d'enregistrement
+- Instructions montrées/complétées
+- Paramètres périphériques
+- Statistiques temps
+
+### VideoAnalytics
+- Métriques qualité détaillées
+- Statistiques usage
+- Données amélioration continue
+
+## 🎯 Intégration JOBGATE
+
+Ce module est conçu pour s'intégrer parfaitement dans l'écosystème JOBGATE :
+
+- **Architecture modulaire** compatible `apps/`
+- **Modèles User** standard Django
+- **API REST** prête pour JWT auth
+- **Liaison CandidateProfile** (future)
+- **Notifications CV** (future)
+- **Dashboard recruteurs** (future)
+
+## 🔧 Développement
+
+### Structure projet
+```
+jobgate-video-studio/
+├── backend/                 # Django API
+│   ├── video_studio/       # Configuration Django
+│   ├── videos/             # App principale
+│   ├── media/              # Fichiers uploadés
+│   └── requirements.txt    # Dépendances Python
+├── frontend/               # React app
+│   ├── src/
+│   │   ├── components/     # Composants React
+│   │   └── services/       # API services
+│   └── package.json        # Dépendances Node
+└── README.md
+```
+
+### Scripts utiles
+```bash
+# Backend
+python manage.py shell        # Console Django
+python manage.py dbshell      # Console PostgreSQL
+python manage.py collectstatic # Fichiers statiques
+
+# Frontend  
+npm run build                 # Build production
+npm test                      # Tests
+```
+
+## 🚀 Déploiement
+
+### Préparation production
+1. **Variables environnement** : Configurer `.env` production
+2. **DEBUG=False** : Désactiver mode debug
+3. **ALLOWED_HOSTS** : Configurer domaines autorisés
+4. **Fichiers statiques** : `collectstatic`
+5. **Base de données** : PostgreSQL production
+6. **Serveur web** : Nginx + Gunicorn recommandé
+
+## 🤝 Contribution
+
+1. Fork le projet
+2. Créer branche feature (`git checkout -b feature/amazing-feature`)
+3. Commit changements (`git commit -m 'Add amazing feature'`)
+4. Push branche (`git push origin feature/amazing-feature`)
+5. Ouvrir Pull Request
 
 ## 📝 License
 
-Educational project for EMSI Summer Internship Program 2025.
+Projet développé pour JOBGATE - Propriété intellectuelle protégée.
+
+## 👥 Équipe
+
+- **Développement** : Projet EMSI/JOBGATE
+- **Encadrement académique** : Pr Youness El Jonhy
+- **Encadrement professionnel** : Aouatif BOZAZ (JOBGATE)
+
+## 📞 Support
+
+Pour support technique ou questions :
+- Email académique : y.eljonhy@emsi.ma
+- Email professionnel : a.bozaz@jobgate.ma
+- Plateforme : www.jobgate.ma
 
 ---
 
-**Status**: ✅ Feature 1 Complete | 🔄 Feature 2 In Development
-
-*Transforming recruitment in Morocco, one video at a time.* 🇲🇦
+⭐ **Projet réalisé dans le cadre de la formation EMSI en partenariat avec JOBGATE**

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
+import { videoAPI, qualityAPI, apiUtils, demoConfig } from '../services/api';
 import './VideoStudio.css';
 
 const VideoStudio = ({
@@ -42,6 +43,13 @@ const VideoStudio = ({
   // États pour les instructions interactives
   const [showInstructions, setShowInstructions] = useState(true);
   
+  // États pour l'intégration API
+  const [currentVideoId, setCurrentVideoId] = useState(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [apiError, setApiError] = useState(null);
+  const [savedVideos, setSavedVideos] = useState([]);
+  
   // Références pour l'analyse audio
   const audioContextRef = useRef(null);
   const analyserRef = useRef(null);
@@ -58,6 +66,22 @@ const VideoStudio = ({
 
   const audioConstraints = {
     deviceId: selectedAudioDevice ? { exact: selectedAudioDevice } : undefined
+  };
+
+  // Test de connexion API
+  const testAPI = async () => {
+    try {
+      console.log('Testing API connection...');
+      const videos = await videoAPI.getVideos();
+      console.log('API Response:', videos);
+      setApiError(null);
+      alert('API fonctionne ! Vérifiez la console pour voir les données.');
+    } catch (error) {
+      const errorInfo = apiUtils.handleApiError(error);
+      console.error('API Error:', errorInfo);
+      setApiError(errorInfo.message);
+      alert(`Erreur API: ${errorInfo.message}`);
+    }
   };
 
   // Timer pour l'enregistrement
@@ -160,7 +184,7 @@ const VideoStudio = ({
   // Charger les périphériques au montage du composant
   useEffect(() => {
     getDevices();
-  },);
+  }, );
 
   // Setup de l'analyse audio avec détection de déconnexion
   const setupAudioAnalysis = async () => {
@@ -403,7 +427,7 @@ const VideoStudio = ({
         message = 'Audio loud - Consider reducing volume slightly';
         status = 'warning';
       } else {
-        score = Math.round(70 + ((average - 18) / 92) * 30);
+        score = Math.round(80 + ((average - 18) / 92) * 20);
         message = 'Audio excellent';
         status = 'success';
       }
@@ -561,8 +585,8 @@ const VideoStudio = ({
     setCapturing(true);
     setCurrentStep('recording');
     setRecordedChunks([]);
-    setRecordingTime(0); // Reset timer
-    setShowInstructions(true); // Réactiver les instructions
+    setRecordingTime(0);
+    setShowInstructions(true);
     
     if (webcamRef.current && webcamRef.current.stream) {
       const stream = webcamRef.current.stream;
@@ -623,6 +647,10 @@ const VideoStudio = ({
     setMicrophoneConnected(true);
     setLastAudioLevel(0);
     setRecordingTime(0);
+    setCurrentVideoId(null);
+    setIsUploading(false);
+    setUploadProgress(0);
+    setApiError(null);
     setQualityDetails({
       face: { score: 0, status: 'checking', message: 'Detecting camera...' },
       lighting: { score: 0, status: 'checking', message: 'Analyzing lighting...' },
@@ -640,10 +668,72 @@ const VideoStudio = ({
     }
   };
 
-  // Valider l'enregistrement
-  const handleValidate = () => {
-    alert('Video saved successfully! (Backend storage coming soon)');
-    handleReset();
+  // Valider et sauvegarder l'enregistrement
+  const handleValidate = async () => {
+    if (recordedChunks.length === 0) {
+      alert('Aucune vidéo à sauvegarder');
+      return;
+    }
+
+    setIsUploading(true);
+    
+    try {
+      // Créer le blob et le fichier
+      const blob = new Blob(recordedChunks, { type: "video/webm" });
+      const fileName = `video-presentation-${Date.now()}.webm`;
+      const videoFile = apiUtils.blobToFile(blob, fileName);
+
+      // Préparer les données pour l'API
+      const formData = apiUtils.createFormData(videoFile, {
+        title: demoConfig.defaultTitle,
+        user_id: demoConfig.defaultUserId,
+        duration: recordingTime,
+        file_size: blob.size,
+        format: 'webm',
+        overall_quality_score: qualityScore
+      });
+
+      // Upload vers l'API
+      console.log('Uploading video to API...');
+      const uploadResponse = await videoAPI.uploadVideo(formData);
+      
+      console.log('Video uploaded successfully:', uploadResponse);
+      
+      // Sauvegarder les tests qualité si on a un ID vidéo
+      if (uploadResponse.video_id) {
+        await qualityAPI.updateQualityChecks(uploadResponse.video_id, qualityDetails);
+      }
+
+      setCurrentVideoId(uploadResponse.video_id);
+      
+      // Callback optionnel pour l'intégration JOBGATE
+      if (onVideoSaved) {
+        onVideoSaved({
+          videoId: uploadResponse.video_id,
+          videoUrl: uploadResponse.video_url,
+          qualityScore: qualityScore,
+          duration: recordingTime
+        });
+      }
+
+      alert('Vidéo sauvegardée avec succès dans la base de données !');
+      
+      // Suggestion de mise à jour CV si score élevé
+      if (qualityScore >= 85 && onCVUpdateSuggested) {
+        onCVUpdateSuggested({
+          videoId: uploadResponse.video_id,
+          suggestion: 'Votre vidéo de présentation est excellente ! Voulez-vous l\'associer à votre CV ?'
+        });
+      }
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      const errorInfo = apiUtils.handleApiError(error);
+      setApiError(errorInfo.message);
+      alert(`Erreur lors de la sauvegarde: ${errorInfo.message}`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -651,6 +741,11 @@ const VideoStudio = ({
       <div className="video-studio-header">
         <h1>JOBGATE Video Studio</h1>
         <p>Record your professional presentation video</p>
+        {apiError && (
+          <div style={{ color: 'red', fontSize: '14px', marginTop: '8px' }}>
+            ⚠️ API Error: {apiError}
+          </div>
+        )}
       </div>
 
       <div className="video-studio-content">
@@ -823,8 +918,17 @@ const VideoStudio = ({
           {currentStep === 'ready' && (
             <div className="controls-ready">
               <button 
+                onClick={testAPI}
+                className="btn btn-secondary"
+                style={{ marginBottom: '10px' }}
+                disabled={isUploading}
+              >
+                🔗 Test API Connection
+              </button>
+              <button 
                 onClick={handleStartQualityCheck}
                 className="btn btn-primary btn-large"
+                disabled={isUploading}
               >
                 Start Quality Check
               </button>
@@ -850,13 +954,14 @@ const VideoStudio = ({
               <button 
                 onClick={handleStartRecording}
                 className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
-                disabled={!isQualityReady}
+                disabled={!isQualityReady || isUploading}
               >
                 {isQualityReady ? 'Start Recording' : 'Improve Quality First'}
               </button>
               <button 
                 onClick={handleReset}
                 className="btn btn-secondary"
+                disabled={isUploading}
               >
                 Skip Tests
               </button>
@@ -873,7 +978,9 @@ const VideoStudio = ({
             <div className="controls-recording">
               <button 
                 onClick={handleStopRecording}
-                className="btn btn-danger btn-large">
+                className="btn btn-danger btn-large"
+                disabled={isUploading}
+              >
                 Stop Recording
               </button>
               <p className="help-text">
@@ -887,17 +994,27 @@ const VideoStudio = ({
               <button 
                 onClick={handleValidate}
                 className="btn btn-success"
+                disabled={isUploading}
               >
-                Validate Video
+                {isUploading ? 'Saving...' : 'Save to Database'}
               </button>
               <button 
                 onClick={handleReset}
                 className="btn btn-secondary"
+                disabled={isUploading}
               >
                 Record Again
               </button>
+              {isUploading && (
+                <div style={{ marginTop: '10px', fontSize: '14px', color: '#1B73E8' }}>
+                  📤 Uploading to JOBGATE servers...
+                </div>
+              )}
               <p className="help-text">
-                Are you satisfied with your recording?
+                {isUploading 
+                  ? 'Saving your video to the database...' 
+                  : 'Are you satisfied with your recording?'
+                }
               </p>
             </div>
           )}
