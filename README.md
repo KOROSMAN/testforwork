@@ -1,258 +1,420 @@
-# JOBGATE Video Studio
+# JOBGATE Video Studio - Plateforme Complète
 
 ## 📹 Description
 
-Studio vidéo intégré pour la plateforme JOBGATE permettant aux candidats d'enregistrer des vidéos de présentation professionnelles avec analyse qualité IA en temps réel.
+Studio vidéo professionnel intégré pour JOBGATE avec système de matching candidat-recruteur, notifications temps réel et intégration IA avancée. Solution complète de recrutement vidéo pour humaniser le processus d'embauche.
 
 ### ✨ Fonctionnalités principales
 
-- **Studio vidéo intégré** : Enregistrement directement depuis le navigateur
-- **Tests qualité IA** : Analyse automatique de la vidéo, audio, éclairage et positionnement
-- **Instructions interactives** : Guide en temps réel pendant l'enregistrement (90 secondes)
-- **Sélection périphériques** : Choix caméra/microphone
-- **Sauvegarde base de données** : Stockage PostgreSQL avec métadonnées complètes
-- **Interface responsive** : Compatible desktop et mobile
-- **API REST complète** : Backend Django avec endpoints complets
+#### 🎬 Studio Vidéo Candidat
+- **Enregistrement intégré** : Capture vidéo directement depuis le navigateur
+- **Tests qualité IA** : Analyse temps réel (visage, éclairage, audio, positionnement)
+- **Instructions interactives** : Guide étape par étape pendant l'enregistrement (90s)
+- **Sélection périphériques** : Choix caméra/microphone avec aperçu
+- **Liaison CV automatique** : Intégration directe au profil candidat
+
+#### 👥 Interface Recruteur
+- **Recherche avancée** : Filtres par qualité vidéo, compétences, localisation
+- **Consultation vidéos** : Lecteur intégré avec analytics de visionnage
+- **Profils candidats** : Vue complète avec CV + vidéo synchronisés
+- **Tableau de bord** : Statistiques et métriques de recrutement
+
+#### 🔔 Système Notifications
+- **Temps réel** : Notifications instantanées (vidéo consultée, profil mis à jour)
+- **Préférences** : Contrôle email, push, SMS par utilisateur
+- **Templates** : Messages personnalisables selon les événements
+- **Centre notifications** : Interface unifiée pour toutes les alertes
+
+#### 🤖 Intelligence Artificielle
+- **Analyse qualité** : Score global basé sur 4 critères (face, lumière, audio, position)
+- **Recommandations** : Suggestions d'amélioration en temps réel
+- **Matching automatique** : Correspondance candidat-poste basée sur la vidéo
+- **Analytics prédictifs** : Insights sur le succès des candidatures
 
 ## 🏗️ Architecture technique
 
 ### Frontend (React.js)
-- **React 18** avec hooks modernes
-- **react-webcam** pour capture vidéo
-- **axios** pour communication API
-- **CSS moderne** avec design JOBGATE
+```
+frontend/
+├── src/
+│   ├── components/
+│   │   ├── VideoStudio.js          # Studio d'enregistrement
+│   │   ├── CandidateSearch.js      # Recherche recruteurs
+│   │   ├── NotificationCenter.js   # Centre notifications
+│   │   └── QualityChecker.js       # Tests qualité IA
+│   ├── services/
+│   │   ├── api.js                  # API vidéos
+│   │   ├── candidateAPI.js         # API candidats
+│   │   └── notificationAPI.js      # API notifications
+│   └── App.js
+```
 
 ### Backend (Django)
-- **Django 5.0+** avec Django REST Framework
-- **PostgreSQL** pour stockage données
-- **Modèles** : Video, QualityCheck, RecordingSession, Analytics
-- **API REST** complète avec upload de fichiers
-- **Admin Django** pour gestion
+```
+backend/
+├── videos/              # Gestion vidéos
+├── candidate/           # Profils candidats
+├── notifications/       # Système notifications
+└── video_studio/        # Configuration Django
+```
 
-### Base de données
-- **PostgreSQL** avec tables optimisées
-- **Stockage fichiers** dans `/media/videos/`
-- **Métadonnées complètes** : durée, qualité, analytics
+### Base de données (PostgreSQL)
+- **Videos** : Métadonnées complètes, scores qualité
+- **CandidateProfile** : Profils enrichis avec vidéos
+- **Notifications** : Système complet avec préférences
+- **Analytics** : Métriques de performance et usage
 
-## 🚀 Installation et Setup
+## 🚀 Installation complète
 
 ### Prérequis
 - Python 3.8+
 - Node.js 16+
 - PostgreSQL 12+
-- Git
+- Redis (optionnel pour cache)
 
-### 1. Cloner le projet
+### 1. Cloner et setup initial
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/username/jobgate-video-studio.git
 cd jobgate-video-studio
 ```
 
-### 2. Setup Backend (Django)
+### 2. Backend Django
 ```bash
 cd backend
 
-# Créer environnement virtuel
+# Environnement virtuel
 python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# ou
 venv\Scripts\activate     # Windows
+source venv/bin/activate  # Linux/Mac
 
-# Installer dépendances
+# Dépendances
 pip install -r requirements.txt
 ```
 
 ### 3. Configuration PostgreSQL
-
-**Créer base de données :**
 ```sql
--- Dans psql ou pgAdmin
-CREATE DATABASE video_studio_db;
-CREATE USER video_studio_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE video_studio_db TO video_studio_user;
+-- Créer base de données
+CREATE DATABASE "JobgateServ";
+CREATE USER postgres WITH PASSWORD '123';
+GRANT ALL PRIVILEGES ON DATABASE "JobgateServ" TO postgres;
 ```
 
-**Configurer `.env` :**
+### 4. Variables d'environnement
 ```bash
 # Créer backend/.env
-DB_NAME=video_studio_db
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+
+# Database
+DB_NAME=JobgateServ
 DB_USER=postgres
-DB_PASSWORD=your_postgresql_password
+DB_PASSWORD=123
 DB_HOST=localhost
 DB_PORT=5432
 
-DEBUG=True
-SECRET_KEY=your-secret-key
-MEDIA_ROOT=media/
+# Media
 MEDIA_URL=/media/
+MEDIA_ROOT=media
+
+# Notifications (optionnel)
+NOTIFICATION_EMAIL_ENABLED=False
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
 ```
 
-### 4. Migrations et admin
+### 5. Migrations et données
 ```bash
-# Appliquer migrations
-python manage.py makemigrations
+# Migrations
+python manage.py makemigrations videos
+python manage.py makemigrations candidate
+python manage.py makemigrations notifications
 python manage.py migrate
 
-# Créer superuser
+# Super utilisateur
 python manage.py createsuperuser
 
-# Lancer serveur
+# Serveur développement
 python manage.py runserver
 ```
 
-### 5. Setup Frontend (React)
+### 6. Frontend React
 ```bash
 cd ../frontend
 
-# Installer dépendances
+# Dépendances
 npm install
 
-# Lancer en développement
+# Développement
 npm start
 ```
 
-## 📱 Utilisation
+## 📱 Guide d'utilisation
 
-### Interface utilisateur
+### Pour les candidats
 
-1. **Accéder** : http://localhost:3000
-2. **Test API** : Cliquer "🔗 Test API Connection"
-3. **Analyse qualité** : "Start Quality Check" (score minimum 80%)
-4. **Enregistrement** : "Start Recording" → suivre instructions interactives
-5. **Sauvegarde** : "Save to Database"
+1. **Accès** : http://localhost:3000
+2. **Tests qualité** : Analyse automatique de votre setup
+   - Détection faciale (score min: 70%)
+   - Qualité éclairage (optimal: 70-85%)
+   - Niveau audio (clair et audible)
+   - Positionnement centré
+3. **Enregistrement guidé** :
+   - 0-20s : Présentation personnelle
+   - 20-45s : Formation et projets
+   - 45-70s : Compétences et motivations
+   - 70-90s : Objectifs professionnels
+4. **Sauvegarde et liaison** : Intégration automatique au profil
+
+### Pour les recruteurs
+
+1. **Recherche candidats** : Filtres avancés
+2. **Consultation vidéos** : Analytics de visionnage
+3. **Profils complets** : CV + vidéo synchronisés
+4. **Notifications** : Alertes nouveaux candidats
 
 ### Administration
 
-- **Admin Django** : http://127.0.0.1:8000/admin/
-- **API Browser** : http://127.0.0.1:8000/api/
-- **pgAdmin** : Gestion base de données
+- **Django Admin** : http://127.0.0.1:8000/admin/
+- **API Explorer** : http://127.0.0.1:8000/api/
+- **Documentation** : Endpoints REST complets
 
-## 🔌 API Endpoints
+## 🔌 API Endpoints complets
 
 ### Vidéos
 ```
-GET    /api/videos/                     # Liste vidéos
-POST   /api/videos/                     # Créer vidéo
-GET    /api/videos/{id}/                # Détail vidéo
-POST   /api/videos/{id}/start_recording/ # Démarrer session
-POST   /api/videos/{id}/stop_recording/  # Arrêter session
-POST   /api/videos/{id}/approve/         # Approuver vidéo
-POST   /api/videos/{id}/link_to_cv/      # Lier au CV
+GET    /api/videos/                      # Liste avec filtres
+POST   /api/videos/                      # Création
+GET    /api/videos/{id}/                 # Détail complet
+PUT    /api/videos/{id}/                 # Mise à jour
+DELETE /api/videos/{id}/                 # Suppression
+POST   /api/videos/{id}/link_to_cv/      # Liaison profil
+POST   /api/videos/{id}/approve/         # Approbation
+POST   /api/upload/                      # Upload optimisé
+```
+
+### Candidats
+```
+GET    /api/candidate/profiles/          # Liste profils
+POST   /api/candidate/profiles/          # Création profil
+GET    /api/candidate/profiles/search/   # Recherche avancée
+POST   /api/candidate/quick-video-link/  # Liaison rapide
+GET    /api/candidate/dashboard-stats/{id}/ # Statistiques
+```
+
+### Notifications
+```
+GET    /api/notifications/notifications/ # Liste avec filtres
+POST   /api/notifications/create/        # Création
+POST   /api/notifications/{id}/mark_as_read/ # Marquer lu
+GET    /api/notifications/stats/{user_id}/   # Statistiques
 ```
 
 ### Tests qualité
 ```
-GET    /api/quality-checks/             # Liste tests
-POST   /api/quality-checks/batch_update/ # Mise à jour batch
-POST   /api/quality-analysis/           # Analyse temps réel
+POST   /api/quality-checks/batch_update/ # Tests multiples
+POST   /api/quality-analysis/            # Analyse temps réel
+GET    /api/quality-checks/              # Historique
 ```
 
-### Upload
+## 📊 Modèles de données avancés
+
+### Video (Extended)
+```python
+- Métadonnées : titre, description, durée, format
+- Qualité : score global, détails par critère
+- Relations : user, profil candidat, analytics
+- États : draft, processing, completed, approved
+- CV : linked_to_cv, cv_update_suggested
 ```
-POST   /api/upload/                     # Upload vidéo spécialisé
+
+### CandidateProfile (New)
+```python
+- Informations : nom, formation, expérience
+- Vidéo : presentation_video, quality_score, last_updated
+- Métrics : profile_completeness, status
+- Relations : user, video_views, sync_logs
 ```
 
-## 📊 Modèles de données
+### Notification (New)
+```python
+- Types : video_linked, video_viewed, sync_needed
+- Contenu : title, message, priority, extra_data
+- État : is_read, is_archived, read_at
+- Actions : action_url, action_text
+```
 
-### Video
-- Utilisateur, titre, description
-- Fichier vidéo, thumbnail
-- Durée, taille, format, résolution
-- Score qualité global, statut approbation
-- Liens CV, suggestions mise à jour
+### VideoViewLog (New)
+```python
+- Tracking : viewer, viewed_at, duration
+- Feedback : rating, notes, completed_viewing
+- Analytics : view_count, unique_viewers
+```
 
-### QualityCheck
-- Types : face, lighting, audio, positioning
-- Score (0-100), statut, message
-- Détails techniques JSON
+## 🎯 Intégration JOBGATE Platform
 
-### RecordingSession
-- Session d'enregistrement
-- Instructions montrées/complétées
-- Paramètres périphériques
-- Statistiques temps
+### Architecture modulaire
+- **apps/candidate/** : Gestion profils candidats
+- **apps/notifications/** : Système notifications
+- **apps/videos/** : Studio vidéo core
+- **Integration ready** : Compatible avec l'écosystème JOBGATE
 
-### VideoAnalytics
-- Métriques qualité détaillées
-- Statistiques usage
-- Données amélioration continue
+### Fonctionnalités d'entreprise
+- **Multi-tenant** : Support entreprises multiples
+- **Permissions** : Rôles candidat/recruteur/admin
+- **Analytics** : Métriques business complètes
+- **Scalabilité** : Architecture prête pour la charge
 
-## 🎯 Intégration JOBGATE
+### Sécurité
+- **JWT Authentication** : Tokens sécurisés
+- **CORS Configuration** : Domaines autorisés
+- **File Validation** : Vérification uploads
+- **SQL Injection** : Protection ORM Django
 
-Ce module est conçu pour s'intégrer parfaitement dans l'écosystème JOBGATE :
+## 🔧 Développement avancé
 
-- **Architecture modulaire** compatible `apps/`
-- **Modèles User** standard Django
-- **API REST** prête pour JWT auth
-- **Liaison CandidateProfile** (future)
-- **Notifications CV** (future)
-- **Dashboard recruteurs** (future)
-
-## 🔧 Développement
-
-### Structure projet
+### Structure complète
 ```
 jobgate-video-studio/
-├── backend/                 # Django API
-│   ├── video_studio/       # Configuration Django
-│   ├── videos/             # App principale
-│   ├── media/              # Fichiers uploadés
-│   └── requirements.txt    # Dépendances Python
-├── frontend/               # React app
+├── backend/
+│   ├── video_studio/        # Configuration Django
+│   ├── videos/              # App vidéos core
+│   ├── candidate/           # Profils candidats
+│   ├── notifications/       # Système notifications
+│   ├── media/               # Stockage fichiers
+│   ├── logs/                # Logs application
+│   └── requirements.txt
+├── frontend/
 │   ├── src/
-│   │   ├── components/     # Composants React
-│   │   └── services/       # API services
-│   └── package.json        # Dépendances Node
-└── README.md
+│   │   ├── components/      # Composants React
+│   │   ├── services/        # API clients
+│   │   ├── utils/           # Utilitaires
+│   │   └── assets/          # Ressources statiques
+│   ├── public/
+│   └── package.json
+├── docs/                    # Documentation
+├── tests/                   # Tests automatisés
+└── deploy/                  # Configuration déploiement
 ```
 
-### Scripts utiles
+### Tests et qualité
 ```bash
 # Backend
-python manage.py shell        # Console Django
-python manage.py dbshell      # Console PostgreSQL
-python manage.py collectstatic # Fichiers statiques
+python manage.py test                    # Tests unitaires
+python manage.py check                   # Vérifications Django
+flake8 .                                # Style Python
 
-# Frontend  
-npm run build                 # Build production
-npm test                      # Tests
+# Frontend
+npm test                                # Tests React
+npm run lint                            # ESLint
+npm run build                           # Build production
 ```
 
-## 🚀 Déploiement
+### Performance
+- **Cache Redis** : Réponses API rapides
+- **Optimisation DB** : Index et requêtes optimisées
+- **CDN Ready** : Fichiers statiques
+- **Compression** : Gzip, minification
 
-### Préparation production
-1. **Variables environnement** : Configurer `.env` production
-2. **DEBUG=False** : Désactiver mode debug
-3. **ALLOWED_HOSTS** : Configurer domaines autorisés
-4. **Fichiers statiques** : `collectstatic`
-5. **Base de données** : PostgreSQL production
-6. **Serveur web** : Nginx + Gunicorn recommandé
+## 🚀 Déploiement production
+
+### Infrastructure recommandée
+- **Serveur** : Ubuntu 20.04+ ou CentOS 8+
+- **Web Server** : Nginx + Gunicorn
+- **Base de données** : PostgreSQL 12+ avec réplication
+- **Cache** : Redis cluster
+- **Storage** : AWS S3 ou équivalent
+- **Monitoring** : Sentry + Grafana
+
+### Configuration production
+```bash
+# Variables environnement
+DEBUG=False
+ALLOWED_HOSTS=jobgate.ma,api.jobgate.ma
+SECRET_KEY=super-secure-production-key
+
+# Database
+DB_HOST=production-db-host
+DB_PASSWORD=secure-production-password
+
+# Media Storage
+MEDIA_URL=https://cdn.jobgate.ma/media/
+AWS_S3_BUCKET=jobgate-media-production
+
+# Email
+EMAIL_HOST=smtp.mailgun.org
+EMAIL_HOST_USER=notifications@jobgate.ma
+```
+
+### Scripts déploiement
+```bash
+# Build et deploy
+./deploy/build.sh                       # Build complet
+./deploy/migrate.sh                     # Migrations production
+./deploy/collect-static.sh              # Fichiers statiques
+./deploy/restart-services.sh            # Restart services
+```
+
+## 📈 Analytics et monitoring
+
+### Métriques business
+- **Candidats** : Taux de complétion vidéo, qualité moyenne
+- **Recruteurs** : Temps de visionnage, taux de contact
+- **Platform** : Utilisateurs actifs, conversions
+- **Performance** : Temps de réponse, erreurs
+
+### Dashboards
+- **Admin** : Vue globale plateforme
+- **Candidat** : Statistiques personnelles
+- **Recruteur** : Métriques de recherche
+- **Entreprise** : ROI recrutement
 
 ## 🤝 Contribution
 
-1. Fork le projet
-2. Créer branche feature (`git checkout -b feature/amazing-feature`)
-3. Commit changements (`git commit -m 'Add amazing feature'`)
-4. Push branche (`git push origin feature/amazing-feature`)
-5. Ouvrir Pull Request
+### Workflow développement
+1. **Fork** le projet
+2. **Branche feature** : `git checkout -b feature/nom-fonctionnalite`
+3. **Développement** : Code + tests
+4. **Commits** : Messages descriptifs
+5. **Pull Request** : Review + merge
 
-## 📝 License
+### Standards code
+- **Python** : PEP8, type hints
+- **JavaScript** : ESLint, Prettier
+- **Git** : Conventional commits
+- **Documentation** : Docstrings + README
 
-Projet développé pour JOBGATE - Propriété intellectuelle protégée.
+## 📝 Roadmap
 
-## 👥 Équipe
+### Version 2.0 (Q2 2025)
+- **IA matching** : Algorithme de correspondance avancé
+- **Multi-langues** : Support FR/EN/AR
+- **Mobile app** : Application native
+- **Intégrations** : LinkedIn, Indeed, etc.
 
-- **Développement** : Projet EMSI/JOBGATE
-- **Encadrement académique** : Pr Youness El Jonhy
-- **Encadrement professionnel** : Aouatif BOZAZ (JOBGATE)
+### Version 3.0 (Q4 2025)
+- **Live interviews** : Entretiens vidéo en direct
+- **AI Assessment** : Évaluation automatique compétences
+- **White label** : Solution pour autres entreprises
+- **Enterprise** : Fonctionnalités grandes entreprises
 
-## 📞 Support
+## 📞 Support et contact
 
-Pour support technique ou questions :
-- Email académique : y.eljonhy@emsi.ma
-- Email professionnel : a.bozaz@jobgate.ma
-- Plateforme : www.jobgate.ma
+### Équipe projet
+- **Développement** : Équipe EMSI/JOBGATE
+- **Encadrement académique** : Pr Youness El Jonhy (y.eljonhy@emsi.ma)
+- **Encadrement professionnel** : Aouatif BOZAZ (a.bozaz@jobgate.ma)
+
+### Support technique
+- **Documentation** : /docs/ (à venir)
+- **Issues** : GitHub Issues
+- **Email** : support@jobgate.ma
+- **Plateforme** : www.jobgate.ma
+
+## 📄 Licence
+
+Copyright © 2025 JOBGATE. Tous droits réservés.
+Développé dans le cadre du partenariat EMSI-JOBGATE.
 
 ---
 
-⭐ **Projet réalisé dans le cadre de la formation EMSI en partenariat avec JOBGATE**
+⭐ **Projet complet de recrutement vidéo nouvelle génération - Powered by JOBGATE & EMSI**

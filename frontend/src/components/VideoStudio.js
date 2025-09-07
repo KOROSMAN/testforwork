@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Webcam from 'react-webcam';
 import { videoAPI, qualityAPI, apiUtils, demoConfig } from '../services/api';
+import { candidateAPI } from '../services/candidateAPI';
+import { notificationAPI } from '../services/notificationAPI';
 import './VideoStudio.css';
 
 const VideoStudio = ({
@@ -49,6 +51,8 @@ const VideoStudio = ({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [apiError, setApiError] = useState(null);
   const [savedVideos, setSavedVideos] = useState([]);
+  const [isVideoSaved, setIsVideoSaved] = useState(false);
+  const [isLinkingToCV, setIsLinkingToCV] = useState(false);
   
   // Références pour l'analyse audio
   const audioContextRef = useRef(null);
@@ -66,22 +70,6 @@ const VideoStudio = ({
 
   const audioConstraints = {
     deviceId: selectedAudioDevice ? { exact: selectedAudioDevice } : undefined
-  };
-
-  // Test de connexion API
-  const testAPI = async () => {
-    try {
-      console.log('Testing API connection...');
-      const videos = await videoAPI.getVideos();
-      console.log('API Response:', videos);
-      setApiError(null);
-      alert('API fonctionne ! Vérifiez la console pour voir les données.');
-    } catch (error) {
-      const errorInfo = apiUtils.handleApiError(error);
-      console.error('API Error:', errorInfo);
-      setApiError(errorInfo.message);
-      alert(`Erreur API: ${errorInfo.message}`);
-    }
   };
 
   // Timer pour l'enregistrement
@@ -184,7 +172,7 @@ const VideoStudio = ({
   // Charger les périphériques au montage du composant
   useEffect(() => {
     getDevices();
-  }, );
+  }, []);
 
   // Setup de l'analyse audio avec détection de déconnexion
   const setupAudioAnalysis = async () => {
@@ -651,6 +639,8 @@ const VideoStudio = ({
     setIsUploading(false);
     setUploadProgress(0);
     setApiError(null);
+    setIsVideoSaved(false);
+    setIsLinkingToCV(false);
     setQualityDetails({
       face: { score: 0, status: 'checking', message: 'Detecting camera...' },
       lighting: { score: 0, status: 'checking', message: 'Analyzing lighting...' },
@@ -705,6 +695,7 @@ const VideoStudio = ({
       }
 
       setCurrentVideoId(uploadResponse.video_id);
+      setIsVideoSaved(true);
       
       // Callback optionnel pour l'intégration JOBGATE
       if (onVideoSaved) {
@@ -716,15 +707,7 @@ const VideoStudio = ({
         });
       }
 
-      alert('Vidéo sauvegardée avec succès dans la base de données !');
-      
-      // Suggestion de mise à jour CV si score élevé
-      if (qualityScore >= 85 && onCVUpdateSuggested) {
-        onCVUpdateSuggested({
-          videoId: uploadResponse.video_id,
-          suggestion: 'Votre vidéo de présentation est excellente ! Voulez-vous l\'associer à votre CV ?'
-        });
-      }
+      alert('Vidéo sauvegardée avec succès !');
       
     } catch (error) {
       console.error('Upload error:', error);
@@ -733,6 +716,44 @@ const VideoStudio = ({
       alert(`Erreur lors de la sauvegarde: ${errorInfo.message}`);
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  // Lier la vidéo au CV
+  const handleLinkToCV = async () => {
+    if (!currentVideoId) {
+      alert('Aucune vidéo à lier');
+      return;
+    }
+
+    setIsLinkingToCV(true);
+    
+    try {
+      console.log('Linking video to CV...');
+      const response = await videoAPI.linkToCV(currentVideoId);
+      
+      console.log('Video linked to CV successfully:', response);
+      
+      // Callback optionnel pour l'intégration JOBGATE
+      if (onCVUpdateSuggested) {
+        onCVUpdateSuggested({
+          videoId: currentVideoId,
+          suggestion: 'Votre vidéo de présentation a été liée à votre CV avec succès !'
+        });
+      }
+
+      alert('Vidéo liée au CV avec succès ! 🎉\n\nVotre profil candidat est maintenant enrichi avec votre vidéo de présentation.');
+      
+      // Optionnel : reset après liaison réussie
+      handleReset();
+      
+    } catch (error) {
+      console.error('Link to CV error:', error);
+      const errorInfo = apiUtils.handleApiError(error);
+      setApiError(errorInfo.message);
+      alert(`Erreur lors de la liaison au CV: ${errorInfo.message}`);
+    } finally {
+      setIsLinkingToCV(false);
     }
   };
 
@@ -918,14 +939,6 @@ const VideoStudio = ({
           {currentStep === 'ready' && (
             <div className="controls-ready">
               <button 
-                onClick={testAPI}
-                className="btn btn-secondary"
-                style={{ marginBottom: '10px' }}
-                disabled={isUploading}
-              >
-                🔗 Test API Connection
-              </button>
-              <button 
                 onClick={handleStartQualityCheck}
                 className="btn btn-primary btn-large"
                 disabled={isUploading}
@@ -991,31 +1004,63 @@ const VideoStudio = ({
 
           {currentStep === 'preview' && (
             <div className="controls-preview">
-              <button 
-                onClick={handleValidate}
-                className="btn btn-success"
-                disabled={isUploading}
-              >
-                {isUploading ? 'Saving...' : 'Save to Database'}
-              </button>
-              <button 
-                onClick={handleReset}
-                className="btn btn-secondary"
-                disabled={isUploading}
-              >
-                Record Again
-              </button>
-              {isUploading && (
-                <div style={{ marginTop: '10px', fontSize: '14px', color: '#1B73E8' }}>
-                  📤 Uploading to JOBGATE servers...
-                </div>
+              {!isVideoSaved ? (
+                <>
+                  <button 
+                    onClick={handleValidate}
+                    className="btn btn-success"
+                    disabled={isUploading}
+                  >
+                    {isUploading ? 'Saving...' : 'Save'}
+                  </button>
+                  <button 
+                    onClick={handleReset}
+                    className="btn btn-secondary"
+                    disabled={isUploading}
+                  >
+                    Record Again
+                  </button>
+                  {isUploading && (
+                    <div style={{ marginTop: '10px', fontSize: '14px', color: '#1B73E8' }}>
+                      📤 Uploading to JOBGATE servers...
+                    </div>
+                  )}
+                  <p className="help-text">
+                    {isUploading 
+                      ? 'Saving your video...' 
+                      : 'Are you satisfied with your recording?'
+                    }
+                  </p>
+                </>
+              ) : (
+                <>
+                  <button 
+                    onClick={handleLinkToCV}
+                    className="btn btn-primary"
+                    disabled={isLinkingToCV}
+                  >
+                    {isLinkingToCV ? 'Linking...' : '🔗 Link to CV Profile'}
+                  </button>
+                  <button 
+                    onClick={handleReset}
+                    className="btn btn-secondary"
+                    disabled={isLinkingToCV}
+                  >
+                    Record New Video
+                  </button>
+                  {isLinkingToCV && (
+                    <div style={{ marginTop: '10px', fontSize: '14px', color: '#1B73E8' }}>
+                      🔗 Linking video to your CV profile...
+                    </div>
+                  )}
+                  <p className="help-text">
+                    {isLinkingToCV 
+                      ? 'Updating your profile with the video...' 
+                      : 'Video saved! Link it to your CV to complete your profile.'
+                    }
+                  </p>
+                </>
               )}
-              <p className="help-text">
-                {isUploading 
-                  ? 'Saving your video to the database...' 
-                  : 'Are you satisfied with your recording?'
-                }
-              </p>
             </div>
           )}
         </div>

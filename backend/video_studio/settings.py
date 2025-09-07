@@ -1,6 +1,6 @@
 """
 Django settings for video_studio project.
-Configuration adaptée pour JOBGATE Video Studio
+Configuration adaptée pour JOBGATE Video Studio - Version Complète
 """
 
 from pathlib import Path
@@ -34,8 +34,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     
-    # Apps locales
-    'videos',
+    # Apps locales - SIMPLE
+    'videos',        # ✅ Fonctionne déjà
+    'candidate',     # ✅ Maintenant au même niveau
+    'notifications', # ✅ Maintenant au même niveau
 ]
 
 MIDDLEWARE = [
@@ -127,7 +129,9 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.MultiPartParser',
         'rest_framework.parsers.FileUploadParser',
-    ]
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20
 }
 
 # CORS settings (pour React)
@@ -142,3 +146,75 @@ CORS_ALLOW_CREDENTIALS = True
 MAX_VIDEO_SIZE = 50 * 1024 * 1024  # 50MB
 ALLOWED_VIDEO_FORMATS = ['mp4', 'webm', 'avi', 'mov']
 VIDEO_QUALITY_THRESHOLD = 75  # Score minimum pour valider une vidéo
+
+# Configuration notifications
+NOTIFICATIONS_ENABLED = True
+NOTIFICATION_EMAIL_ENABLED = os.getenv('NOTIFICATION_EMAIL_ENABLED', 'False') == 'True'
+NOTIFICATION_SMS_ENABLED = os.getenv('NOTIFICATION_SMS_ENABLED', 'False') == 'True'
+
+# Configuration e-mail (pour les notifications)
+if NOTIFICATION_EMAIL_ENABLED:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+    EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@jobgate.ma')
+
+# Configuration Celery (pour les tâches asynchrones - optionnel)
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://localhost:6379/0')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND', 'redis://localhost:6379/0')
+
+# Configuration cache (optionnel)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+    } if os.getenv('REDIS_URL') else {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Logging configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs', 'django.log'),
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'videos': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'candidate': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'notifications': {
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+    },
+}
+
+# Créer le dossier logs s'il n'existe pas
+os.makedirs(os.path.join(BASE_DIR, 'logs'), exist_ok=True)

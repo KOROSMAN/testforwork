@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.utils import timezone
 import json
 
 from .models import Video, QualityCheck, RecordingSession, VideoAnalytics
@@ -21,7 +22,7 @@ from .serializers import (
 class VideoViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour la gestion complète des vidéos
-    Compatible avec le frontend React VideoStudio
+    Compatible avec le frontend React VideoStudio + intégration candidat
     """
     queryset = Video.objects.all()
     parser_classes = (MultiPartParser, FormParser, JSONParser)
@@ -137,16 +138,55 @@ class VideoViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['post'])
     def link_to_cv(self, request, pk=None):
-        """Lier la vidéo au CV du candidat"""
+        """Lier la vidéo au CV du candidat - VERSION INTÉGRÉE"""
         video = self.get_object()
-        video.linked_to_cv = True
-        video.cv_update_suggested = False
-        video.save()
         
-        return Response({
-            'message': 'Video linked to CV successfully',
-            'linked_to_cv': video.linked_to_cv
-        })
+        try:
+            # Récupérer ou créer le profil candidat
+            from candidate.models import CandidateProfile, CVVideoSyncLog
+            candidate_profile, created = CandidateProfile.objects.get_or_create(
+                user=video.user,
+                defaults={
+                    'first_name': video.user.first_name or 'Candidat',
+                    'last_name': video.user.last_name or 'Demo',
+                }
+            )
+            
+            # Vérifier que la vidéo est approuvée
+            if not video.is_approved:
+                video.is_approved = True  # Auto-approuver pour le demo
+            
+            # Lier la vidéo au profil candidat
+            candidate_profile.update_video_link(video)
+            
+            # Marquer la vidéo comme liée au CV
+            video.linked_to_cv = True
+            video.cv_update_suggested = False
+            video.save()
+            
+            # Créer un log de synchronisation
+            CVVideoSyncLog.objects.create(
+                candidate_profile=candidate_profile,
+                action='video_linked',
+                video_version=f"Video-{video.id}",
+                sync_completed=True,
+                sync_date=timezone.now(),
+                notes=f'Vidéo {video.title} liée automatiquement au profil candidat'
+            )
+            
+            return Response({
+                'message': 'Vidéo liée au profil candidat avec succès !',
+                'linked_to_cv': video.linked_to_cv,
+                'candidate_profile_id': candidate_profile.id,
+                'profile_completeness': candidate_profile.profile_completeness,
+                'video_quality_score': video.overall_quality_score
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': f'Erreur lors de la liaison: {str(e)}'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class QualityCheckViewSet(viewsets.ModelViewSet):
