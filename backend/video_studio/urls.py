@@ -1,6 +1,7 @@
+# backend/video_studio/urls.py - Version mise à jour
 """
 URL configuration for video_studio project.
-Configuration mise à jour avec toutes les nouvelles fonctionnalités
+Configuration mise à jour avec l'interface recruteur
 """
 from django.contrib import admin
 from django.urls import path, include
@@ -10,16 +11,18 @@ from django.http import JsonResponse
 
 def api_status(request):
     return JsonResponse({
-        'message': 'JOBGATE Video Studio API - Version Complète',
+        'message': 'JOBGATE Video Studio API - Version Complète avec Interface Recruteur',
         'status': 'running',
-        'version': '2.0.0',
+        'version': '2.1.0',
         'features': [
             'Video recording and quality analysis',
             'Candidate profile integration',
-            'Recruiter dashboard',
+            'Recruiter dashboard with secure access',
             'Real-time notifications',
             'CV-Video synchronization',
-            'Advanced candidate search'
+            'Advanced candidate search',
+            'Video viewing logs and analytics',
+            'Recruiter interaction tracking'
         ],
         'endpoints': {
             # API Vidéos
@@ -34,6 +37,13 @@ def api_status(request):
             'video_link': '/api/candidate/quick-video-link/',
             'dashboard_stats': '/api/candidate/dashboard-stats/{candidate_id}/',
             
+            # API Recruteurs - NOUVEAU
+            'recruiter_candidates': '/api/recruiter/candidates/',
+            'recruiter_candidate_detail': '/api/recruiter/candidates/{candidate_id}/',
+            'recruiter_video_log': '/api/recruiter/video-views/log/',
+            'recruiter_dashboard': '/api/recruiter/dashboard/stats/',
+            'recruiter_search': '/api/recruiter/recruiter/candidate_search/',
+            
             # API Notifications
             'notifications': '/api/notifications/notifications/',
             'notification_create': '/api/notifications/create/',
@@ -42,10 +52,17 @@ def api_status(request):
             # Interface d'administration
             'admin': '/admin/',
         },
-        'documentation': {
-            'postman_collection': '/api/docs/postman/',
-            'swagger': '/api/docs/swagger/',
-            'integration_guide': '/api/docs/integration/'
+        'security': {
+            'candidate_data': 'Only public profiles accessible to recruiters',
+            'video_access': 'Approved videos only',
+            'interaction_logging': 'All recruiter actions are logged',
+            'privacy_compliance': 'GDPR compliant data handling'
+        },
+        'integration': {
+            'frontend_compatibility': 'React.js with TypeScript',
+            'api_format': 'RESTful JSON API',
+            'authentication': 'Token-based (to be implemented)',
+            'real_time': 'WebSocket notifications (planned)'
         }
     })
 
@@ -60,6 +77,7 @@ urlpatterns = [
     path('api/', include('videos.urls')),                    # API Vidéos
     path('api/candidate/', include('candidate.urls')),       # API Candidats  
     path('api/notifications/', include('notifications.urls')), # API Notifications
+    path('api/recruiter/', include('recruiter.urls')),       # API Recruteurs - NOUVEAU
     
     # Endpoints de documentation (optionnels)
     # path('api/docs/', include('docs.urls')),
@@ -74,3 +92,16 @@ if settings.DEBUG:
     urlpatterns += [
         # path('api/test/', include('tests.urls')),
     ]
+
+# Configuration spécifique pour la sécurité recruteur
+RECRUITER_SECURITY_SETTINGS = {
+    'REQUIRE_AUTHENTICATION': True,  # À activer en production
+    'LOG_ALL_INTERACTIONS': True,
+    'CANDIDATE_DATA_ACCESS': 'public_only',
+    'VIDEO_ACCESS': 'approved_only',
+    'RATE_LIMITING': {
+        'profile_views': '100/hour',
+        'video_views': '50/hour',
+        'searches': '200/hour'
+    }
+}

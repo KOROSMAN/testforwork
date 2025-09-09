@@ -34,10 +34,11 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     
-    # Apps locales - SIMPLE
-    'videos',        # ✅ Fonctionne déjà
-    'candidate',     # ✅ Maintenant au même niveau
-    'notifications', # ✅ Maintenant au même niveau
+    # Apps locales
+    'videos',
+    'candidate',
+    'notifications',
+    'recruiter',        # 🆕 AJOUTER CETTE LIGNE
 ]
 
 MIDDLEWARE = [
