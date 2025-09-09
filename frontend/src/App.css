@@ -1,7 +1,270 @@
+/* App.css - Styles mis à jour avec navigation et modals */
+
 .App {
   text-align: center;
+  min-height: 100vh;
+  background-color: #fafbfc;
 }
 
+/* Navigation entre les vues */
+.app-navigation {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 8px;
+  padding: 0 20px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.nav-btn {
+  padding: 10px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
+  color: #64748b;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  justify-content: center;
+}
+
+.nav-btn:hover {
+  border-color: #cbd5e0;
+  background: #f8fafc;
+  color: #475569;
+  transform: translateY(-1px);
+}
+
+.nav-btn.active {
+  border-color: #1B73E8;
+  background: #1B73E8;
+  color: white;
+  box-shadow: 0 2px 8px rgba(27, 115, 232, 0.25);
+}
+
+.nav-btn.demo-btn {
+  border-color: #f59e0b;
+  color: #d97706;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.nav-btn.demo-btn:hover {
+  border-color: #d97706;
+  background: linear-gradient(135deg, #fde68a, #fcd34d);
+  color: #92400e;
+}
+
+/* Contenu principal */
+.app-content {
+  position: relative;
+  min-height: calc(100vh - 140px); /* Hauteur navbar + navigation */
+}
+
+/* Overlay pour les notifications */
+.notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Responsive pour la navigation */
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0 16px;
+    gap: 6px;
+  }
+  
+  .nav-btn {
+    min-width: auto;
+    padding: 8px 16px;
+    font-size: 0.875rem;
+    flex: 1;
+  }
+  
+  .nav-btn.demo-btn {
+    flex: none;
+    min-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .nav-btn {
+    width: 100%;
+    flex: none;
+  }
+}
+
+/* Styles pour les états de chargement */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #64748b;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #1B73E8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Messages d'erreur globaux */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #dc2626;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  margin: 20px;
+}
+
+.error-state h3 {
+  color: #b91c1c;
+  margin: 0 0 8px 0;
+}
+
+.error-state p {
+  margin: 0 0 16px 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+/* Améliorations pour l'accessibilité */
+.nav-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(27, 115, 232, 0.2);
+}
+
+/* Animation pour les transitions de vue */
+.app-content > * {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Styles pour les tooltips (si nécessaire) */
+.tooltip {
+  position: relative;
+  cursor: help;
+}
+
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 1000;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+}
+
+/* Styles pour les badges de notification */
+.notification-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #ef4444;
+  color: white;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Override des styles par défaut de React */
 .App-logo {
   height: 40vmin;
   pointer-events: none;

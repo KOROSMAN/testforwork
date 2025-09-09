@@ -3,6 +3,7 @@ import Webcam from 'react-webcam';
 import { videoAPI, qualityAPI, apiUtils, demoConfig } from '../services/api';
 import { candidateAPI } from '../services/candidateAPI';
 import { notificationAPI } from '../services/notificationAPI';
+import Modal, { useModal } from './Modal';
 import './VideoStudio.css';
 
 const VideoStudio = ({
@@ -20,6 +21,9 @@ const VideoStudio = ({
   const [recordedChunks, setRecordedChunks] = useState([]);
   const [recordedVideoUrl, setRecordedVideoUrl] = useState('');
   const [currentStep, setCurrentStep] = useState('ready'); // ready, quality-check, recording, preview
+  
+  // Hook pour gérer les modals
+  const { modal, showSuccess, showError, showConfirm, showWarning, hideModal } = useModal();
   
   // États pour les périphériques
   const [devices, setDevices] = useState({ videoDevices: [], audioDevices: [] });
@@ -166,6 +170,10 @@ const VideoStudio = ({
       }
     } catch (error) {
       console.error('Error getting devices:', error);
+      showError(
+        'Erreur de périphériques',
+        'Impossible d\'accéder aux périphériques. Vérifiez les autorisations de votre navigateur.'
+      );
     }
   };
 
@@ -208,6 +216,10 @@ const VideoStudio = ({
     } catch (error) {
       console.error('Audio setup error:', error);
       setMicrophoneConnected(false);
+      showError(
+        'Erreur microphone',
+        'Impossible d\'accéder au microphone. Vérifiez les autorisations et que votre microphone fonctionne.'
+      );
     }
   };
 
@@ -566,10 +578,27 @@ const VideoStudio = ({
   // Démarrer l'enregistrement
   const handleStartRecording = () => {
     if (currentStep === 'quality-check' && !isQualityReady) {
-      alert('Please improve video quality before recording (score must be 80+)');
+      showWarning(
+        'Qualité insuffisante',
+        'Veuillez améliorer la qualité vidéo avant d\'enregistrer. Le score doit être d\'au moins 80/100.',
+        () => {
+          // L'utilisateur peut décider de continuer quand même
+          showConfirm(
+            'Continuer malgré tout ?',
+            'Êtes-vous sûr de vouloir enregistrer avec une qualité insuffisante ? Cela pourrait affecter la qualité de votre présentation.',
+            () => {
+              startRecordingProcess();
+            }
+          );
+        }
+      );
       return;
     }
 
+    startRecordingProcess();
+  };
+
+  const startRecordingProcess = () => {
     setCapturing(true);
     setCurrentStep('recording');
     setRecordedChunks([]);
@@ -588,12 +617,18 @@ const VideoStudio = ({
         mediaRecorderRef.current.start();
       } catch (error) {
         console.error('MediaRecorder error:', error);
-        alert('Error initializing recording');
+        showError(
+          'Erreur d\'enregistrement',
+          'Impossible d\'initialiser l\'enregistrement. Vérifiez que votre navigateur supporte l\'enregistrement vidéo.'
+        );
         setCapturing(false);
         setCurrentStep('quality-check');
       }
     } else {
-      alert('Camera not available. Please allow camera access.');
+      showError(
+        'Caméra non disponible',
+        'La caméra n\'est pas accessible. Veuillez autoriser l\'accès à la caméra et réessayer.'
+      );
       setCapturing(false);
       setCurrentStep('ready');
     }
@@ -627,41 +662,56 @@ const VideoStudio = ({
 
   // Recommencer
   const handleReset = () => {
-    setCurrentStep('ready');
-    setRecordedChunks([]);
-    setRecordedVideoUrl('');
-    setQualityScore(0);
-    setIsQualityReady(false);
-    setMicrophoneConnected(true);
-    setLastAudioLevel(0);
-    setRecordingTime(0);
-    setCurrentVideoId(null);
-    setIsUploading(false);
-    setUploadProgress(0);
-    setApiError(null);
-    setIsVideoSaved(false);
-    setIsLinkingToCV(false);
-    setQualityDetails({
-      face: { score: 0, status: 'checking', message: 'Detecting camera...' },
-      lighting: { score: 0, status: 'checking', message: 'Analyzing lighting...' },
-      audio: { score: 0, status: 'checking', message: 'Testing audio...' },
-      positioning: { score: 0, status: 'checking', message: 'Checking position...' }
-    });
-    
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-    
-    if (recordedVideoUrl) {
-      URL.revokeObjectURL(recordedVideoUrl);
+    const doReset = () => {
+      setCurrentStep('ready');
+      setRecordedChunks([]);
+      setRecordedVideoUrl('');
+      setQualityScore(0);
+      setIsQualityReady(false);
+      setMicrophoneConnected(true);
+      setLastAudioLevel(0);
+      setRecordingTime(0);
+      setCurrentVideoId(null);
+      setIsUploading(false);
+      setUploadProgress(0);
+      setApiError(null);
+      setIsVideoSaved(false);
+      setIsLinkingToCV(false);
+      setQualityDetails({
+        face: { score: 0, status: 'checking', message: 'Detecting camera...' },
+        lighting: { score: 0, status: 'checking', message: 'Analyzing lighting...' },
+        audio: { score: 0, status: 'checking', message: 'Testing audio...' },
+        positioning: { score: 0, status: 'checking', message: 'Checking position...' }
+      });
+      
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
+      
+      if (recordedVideoUrl) {
+        URL.revokeObjectURL(recordedVideoUrl);
+      }
+    };
+
+    if (currentStep === 'recording' || (currentStep === 'preview' && recordedChunks.length > 0)) {
+      showConfirm(
+        'Recommencer ?',
+        'Êtes-vous sûr de vouloir recommencer ? Votre enregistrement actuel sera perdu.',
+        doReset
+      );
+    } else {
+      doReset();
     }
   };
 
   // Valider et sauvegarder l'enregistrement
   const handleValidate = async () => {
     if (recordedChunks.length === 0) {
-      alert('Aucune vidéo à sauvegarder');
+      showError(
+        'Aucune vidéo',
+        'Aucune vidéo à sauvegarder. Veuillez d\'abord enregistrer une vidéo.'
+      );
       return;
     }
 
@@ -707,13 +757,19 @@ const VideoStudio = ({
         });
       }
 
-      alert('Vidéo sauvegardée avec succès !');
+      showSuccess(
+        'Vidéo sauvegardée !',
+        'Votre vidéo de présentation a été sauvegardée avec succès. Vous pouvez maintenant la lier à votre CV.'
+      );
       
     } catch (error) {
       console.error('Upload error:', error);
       const errorInfo = apiUtils.handleApiError(error);
       setApiError(errorInfo.message);
-      alert(`Erreur lors de la sauvegarde: ${errorInfo.message}`);
+      showError(
+        'Erreur de sauvegarde',
+        `Impossible de sauvegarder la vidéo : ${errorInfo.message}. Veuillez réessayer.`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -722,7 +778,10 @@ const VideoStudio = ({
   // Lier la vidéo au CV
   const handleLinkToCV = async () => {
     if (!currentVideoId) {
-      alert('Aucune vidéo à lier');
+      showError(
+        'Aucune vidéo',
+        'Aucune vidéo à lier. Veuillez d\'abord sauvegarder votre vidéo.'
+      );
       return;
     }
 
@@ -742,16 +801,30 @@ const VideoStudio = ({
         });
       }
 
-      alert('Vidéo liée au CV avec succès ! 🎉\n\nVotre profil candidat est maintenant enrichi avec votre vidéo de présentation.');
-      
-      // Optionnel : reset après liaison réussie
-      handleReset();
+      showSuccess(
+        'Vidéo liée au CV ! 🎉',
+        'Parfait ! Votre vidéo de présentation a été liée à votre profil candidat avec succès. Votre profil est maintenant enrichi et plus attractif pour les recruteurs.',
+        () => {
+          // Proposer de recommencer ou de voir le profil
+          showConfirm(
+            'Que voulez-vous faire maintenant ?',
+            'Votre vidéo est maintenant liée à votre CV. Voulez-vous enregistrer une nouvelle vidéo ou terminer ?',
+            () => handleReset(), // Nouvelle vidéo
+            () => {}, // Terminer (juste fermer)
+            'Nouvelle vidéo',
+            'Terminer'
+          );
+        }
+      );
       
     } catch (error) {
       console.error('Link to CV error:', error);
       const errorInfo = apiUtils.handleApiError(error);
       setApiError(errorInfo.message);
-      alert(`Erreur lors de la liaison au CV: ${errorInfo.message}`);
+      showError(
+        'Erreur de liaison',
+        `Impossible de lier la vidéo au CV : ${errorInfo.message}. Veuillez réessayer.`
+      );
     } finally {
       setIsLinkingToCV(false);
     }
@@ -759,6 +832,20 @@ const VideoStudio = ({
 
   return (
     <div className="video-studio">
+      {/* Modal personnalisé */}
+      <Modal
+        isOpen={modal.isOpen}
+        onClose={hideModal}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        onConfirm={modal.onConfirm}
+        onCancel={modal.onCancel}
+        showCancel={modal.showCancel}
+        confirmText={modal.confirmText}
+        cancelText={modal.cancelText}
+      />
+
       <div className="video-studio-header">
         <h1>JOBGATE Video Studio</h1>
         <p>Record your professional presentation video</p>
@@ -967,9 +1054,9 @@ const VideoStudio = ({
               <button 
                 onClick={handleStartRecording}
                 className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
-                disabled={!isQualityReady || isUploading}
+                disabled={isUploading}
               >
-                {isQualityReady ? 'Start Recording' : 'Improve Quality First'}
+                {isQualityReady ? 'Start Recording' : 'Record Anyway'}
               </button>
               <button 
                 onClick={handleReset}
@@ -981,7 +1068,7 @@ const VideoStudio = ({
               <p className="help-text">
                 {isQualityReady 
                   ? 'Ready to record professional video'
-                  : `Current score: ${qualityScore}/100 (need 80+)`
+                  : `Current score: ${qualityScore}/100 (recommended: 80+)`
                 }
               </p>
             </div>
@@ -1011,7 +1098,7 @@ const VideoStudio = ({
                     className="btn btn-success"
                     disabled={isUploading}
                   >
-                    {isUploading ? 'Saving...' : 'Save'}
+                    {isUploading ? 'Saving...' : 'Save Video'}
                   </button>
                   <button 
                     onClick={handleReset}
