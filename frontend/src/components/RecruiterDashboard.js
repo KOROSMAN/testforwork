@@ -150,41 +150,13 @@ const RecruiterDashboard = () => {
 
   return (
     <div className="recruiter-dashboard">
-      {/* Header */}
-      <div className="dashboard-header">
-        <div className="header-content">
-          <div className="header-left">
-            <img src="/api/placeholder/120/32" alt="JOBGATE" className="logo" />
-            <div className="header-divider"></div>
-            <h1>Espace Recruteur</h1>
+      {/* Navigation & Breadcrumb - Seulement pour la liste */}
+      {currentView === 'list' && (
+        <div className="navigation">
+          <div className="breadcrumb">
+            <span className="current-page">Candidats</span>
           </div>
-          <div className="header-right">
-            <div className="recruiter-info">
-              <span className="recruiter-name">Marie Dubois</span>
-              <span className="company-name">TechCorp Inc.</span>
-            </div>
-            <div className="avatar">MD</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation & Breadcrumb */}
-      <div className="navigation">
-        <div className="breadcrumb">
-          <button onClick={backToList} className={currentView === 'list' ? 'active' : ''}>
-            Candidats
-          </button>
-          {selectedCandidate && (
-            <>
-              <span className="separator">›</span>
-              <span className="current">
-                {currentView === 'profile' ? 'Profil' : 'Vidéo'} - {selectedCandidate.full_name}
-              </span>
-            </>
-          )}
-        </div>
-        
-        {currentView === 'list' && (
+          
           <div className="view-actions">
             <span className="results-count">
               {candidates.length} candidat{candidates.length > 1 ? 's' : ''}
@@ -196,8 +168,8 @@ const RecruiterDashboard = () => {
               Filtres {showFilters ? '▲' : '▼'}
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Vue principale */}
       <div className="main-content">
@@ -409,191 +381,205 @@ const CandidateCard = ({ candidate, onViewProfile, onWatchVideo }) => (
 );
 
 // Composant vue profil candidat
-const CandidateProfileView = ({ candidate, onWatchVideo, onBack }) => (
-  <div className="candidate-profile-view">
-    <div className="profile-header">
-      <button className="back-button" onClick={onBack}>← Retour</button>
-      <div className="profile-title">
-        <h2>Profil de {candidate.full_name}</h2>
-        <span className={`status-badge status-${candidate.status}`}>
-          {candidate.status === 'active' ? 'Recherche active' : 
-           candidate.status === 'passive' ? 'Recherche passive' : 'Non disponible'}
-        </span>
+const CandidateProfileView = ({ candidate, onWatchVideo, onBack }) => {
+  const [showPdfViewer, setShowPdfViewer] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState('');
+
+  const handleViewPdf = (url) => {
+    setPdfUrl(url);
+    setShowPdfViewer(true);
+  };
+
+  return (
+    <div className="candidate-profile-view">
+      <div className="profile-header">
+        <button className="back-button" onClick={onBack}>← Retour</button>
+        <div className="profile-title">
+          <h2>Profil de {candidate.full_name}</h2>
+          <span className={`status-badge status-${candidate.status}`}>
+            {candidate.status === 'active' ? 'Recherche active' : 
+             candidate.status === 'passive' ? 'Recherche passive' : 'Non disponible'}
+          </span>
+        </div>
       </div>
-    </div>
 
-    <div className="profile-content">
-      <div className="profile-main">
-        <div className="profile-section">
-          <h3>Informations personnelles</h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">Email:</span>
-              <span className="value">{candidate.user?.email}</span>
+      {/* PDF Viewer Modal */}
+      {showPdfViewer && (
+        <div className="pdf-viewer-modal" onClick={(e) => e.target.className === 'pdf-viewer-modal' && setShowPdfViewer(false)}>
+          <div className="pdf-viewer-container">
+            <div className="pdf-viewer-header">
+              <h3>📄 CV de {candidate.full_name}</h3>
+              <button 
+                className="close-pdf-btn"
+                onClick={() => setShowPdfViewer(false)}
+              >
+                ×
+              </button>
             </div>
-            <div className="info-item">
-              <span className="label">Téléphone:</span>
-              <span className="value">{candidate.phone || 'Non renseigné'}</span>
+            <div className="pdf-viewer-content">
+              <iframe
+                src={pdfUrl}
+                width="100%"
+                height="100%"
+                title="CV PDF"
+                style={{ border: 'none' }}
+              />
             </div>
-            <div className="info-item">
-              <span className="label">Localisation:</span>
-              <span className="value">{candidate.location || 'Non renseigné'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="profile-section">
-          <h3>Formation & expérience</h3>
-          <div className="info-grid">
-            <div className="info-item">
-              <span className="label">Niveau d'études:</span>
-              <span className="value">{candidate.education_level}</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Université:</span>
-              <span className="value">{candidate.university}</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Spécialisation:</span>
-              <span className="value">{candidate.major}</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Année d'obtention:</span>
-              <span className="value">{candidate.graduation_year || 'Non renseigné'}</span>
-            </div>
-            <div className="info-item">
-              <span className="label">Expérience:</span>
-              <span className="value">{candidate.experience_years} an{candidate.experience_years > 1 ? 's' : ''}</span>
-            </div>
-          </div>
-        </div>
-
-        {candidate.presentation_video && (
-          <div className="profile-section">
-            <h3>Vidéo de présentation</h3>
-            <div className="video-info">
-              <div className="video-meta">
-                <span className="video-quality">
-                  Score qualité: <strong>{candidate.video_quality_score}%</strong>
-                </span>
-                <span className="video-date">
-                  Mise à jour: {new Date(candidate.video_last_updated).toLocaleDateString('fr-FR')}
-                </span>
-              </div>
-              <button className="btn btn-primary btn-large" onClick={onWatchVideo}>
-                🎥 Regarder la vidéo de présentation
+            <div className="pdf-viewer-actions">
+              <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+                📥 Télécharger le CV
+              </a>
+              <button className="btn btn-secondary" onClick={() => setShowPdfViewer(false)}>
+                Fermer
               </button>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <div className="profile-section">
-          <h3>Documents</h3>
-          <div className="documents-list">
-            {candidate.cv_file ? (
-              <div className="document-item">
-                <span className="doc-icon">📄</span>
-                <div className="doc-info">
-                  <span className="doc-name">CV.pdf</span>
-                  <span className="doc-date">
-                    Mis à jour: {new Date(candidate.cv_last_updated).toLocaleDateString('fr-FR')}
+      {/* Contenu principal sans sidebar */}
+      <div className="profile-content-full">
+        <div className="profile-main-full">
+          
+          {/* Informations personnelles */}
+          <div className="profile-section">
+            <h3>Informations personnelles</h3>
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="label">Email:</span>
+                <span className="value">{candidate.user?.email}</span>
+              </div>
+              <div className="info-item">
+                <span className="label">Téléphone:</span>
+                <span className="value">{candidate.phone || 'Non renseigné'}</span>
+              </div>
+              <div className="info-item">
+                <span className="label">Localisation:</span>
+                <span className="value">{candidate.location || 'Non renseigné'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Formation & expérience */}
+          <div className="profile-section">
+            <h3>Formation & expérience</h3>
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="label">Niveau d'études:</span>
+                <span className="value">{candidate.education_level}</span>
+              </div>
+              <div className="info-item">
+                <span className="label">Université:</span>
+                <span className="value">{candidate.university}</span>
+              </div>
+              <div className="info-item">
+                <span className="label">Spécialisation:</span>
+                <span className="value">{candidate.major}</span>
+              </div>
+              <div className="info-item">
+                <span className="label">Année d'obtention:</span>
+                <span className="value">{candidate.graduation_year || 'Non renseigné'}</span>
+              </div>
+              <div className="info-item">
+                <span className="label">Expérience:</span>
+                <span className="value">{candidate.experience_years} an{candidate.experience_years > 1 ? 's' : ''}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Vidéo de présentation */}
+          {candidate.presentation_video && (
+            <div className="profile-section">
+              <h3>Vidéo de présentation</h3>
+              <div className="video-info">
+                <div className="video-meta">
+                  <span className="video-quality">
+                    Score qualité: <strong>{candidate.video_quality_score}%</strong>
+                  </span>
+                  <span className="video-date">
+                    Mise à jour: {new Date(candidate.video_last_updated).toLocaleDateString('fr-FR')}
                   </span>
                 </div>
-                <a href={candidate.cv_file} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-small">
-                  Télécharger
-                </a>
+                <button className="btn btn-primary btn-large" onClick={onWatchVideo}>
+                  🎥 Regarder la vidéo de présentation
+                </button>
               </div>
-            ) : (
-              <p className="no-documents">Aucun CV disponible</p>
-            )}
-            
-            {candidate.portfolio_url && (
-              <div className="document-item">
-                <span className="doc-icon">🌐</span>
-                <div className="doc-info">
-                  <span className="doc-name">Portfolio en ligne</span>
-                </div>
-                <a href={candidate.portfolio_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-small">
-                  Visiter
-                </a>
-              </div>
-            )}
-
-            {candidate.linkedin_url && (
-              <div className="document-item">
-                <span className="doc-icon">💼</span>
-                <div className="doc-info">
-                  <span className="doc-name">Profil LinkedIn</span>
-                </div>
-                <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-small">
-                  Voir profil
-                </a>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="profile-sidebar">
-        <div className="sidebar-section">
-          <h4>Complétude du profil</h4>
-          <div className="completeness-circle">
-            <svg width="100" height="100" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="40" fill="none" stroke="#e2e8f0" strokeWidth="8"/>
-              <circle 
-                cx="50" 
-                cy="50" 
-                r="40" 
-                fill="none" 
-                stroke="#1B73E8" 
-                strokeWidth="8"
-                strokeDasharray={`${candidate.profile_completeness * 2.51}, 251`}
-                transform="rotate(-90 50 50)"
-              />
-              <text x="50" y="50" textAnchor="middle" dy="7" className="percentage-text">
-                {candidate.profile_completeness}%
-              </text>
-            </svg>
-          </div>
-        </div>
-
-        <div className="sidebar-section">
-          <h4>Actions rapides</h4>
-          <div className="quick-actions">
-            <button className="btn btn-outline">
-              💌 Envoyer message
-            </button>
-            <button className="btn btn-outline">
-              📞 Planifier entretien
-            </button>
-            <button className="btn btn-outline">
-              ⭐ Ajouter aux favoris
-            </button>
-            <button className="btn btn-outline">
-              📋 Créer rapport
-            </button>
-          </div>
-        </div>
-
-        <div className="sidebar-section">
-          <h4>Informations système</h4>
-          <div className="system-info">
-            <div className="info-item">
-              <span className="label">Inscription:</span>
-              <span className="value">{new Date(candidate.created_at).toLocaleDateString('fr-FR')}</span>
             </div>
-            <div className="info-item">
-              <span className="label">Dernière connexion:</span>
-              <span className="value">{new Date(candidate.updated_at).toLocaleDateString('fr-FR')}</span>
+          )}
+
+          {/* Documents */}
+          <div className="profile-section">
+            <h3>Documents</h3>
+            <div className="documents-list">
+              {candidate.cv_file ? (
+                <div className="document-item-enhanced">
+                  <div className="doc-preview">
+                    <span className="doc-icon-large">📄</span>
+                  </div>
+                  <div className="doc-info-enhanced">
+                    <span className="doc-name-large">CV.pdf</span>
+                    <span className="doc-date">
+                      Mis à jour: {new Date(candidate.cv_last_updated).toLocaleDateString('fr-FR')}
+                    </span>
+                    <span className="doc-size">Document PDF</span>
+                  </div>
+                  <div className="doc-actions-enhanced">
+                    <a 
+                      href={candidate.cv_file} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="btn btn-primary btn-small"
+                    >
+                      📄 Lire
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <p className="no-documents">Aucun CV disponible</p>
+              )}
+              
+              {candidate.portfolio_url && (
+                <div className="document-item-enhanced">
+                  <div className="doc-preview">
+                    <span className="doc-icon-large">🌐</span>
+                  </div>
+                  <div className="doc-info-enhanced">
+                    <span className="doc-name-large">Portfolio en ligne</span>
+                    <span className="doc-date">Lien externe</span>
+                  </div>
+                  <div className="doc-actions-enhanced">
+                    <a href={candidate.portfolio_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary btn-small">
+                      🔗 Visiter
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {candidate.linkedin_url && (
+                <div className="document-item-enhanced">
+                  <div className="doc-preview">
+                    <span className="doc-icon-large">💼</span>
+                  </div>
+                  <div className="doc-info-enhanced">
+                    <span className="doc-name-large">Profil LinkedIn</span>
+                    <span className="doc-date">Réseau professionnel</span>
+                  </div>
+                  <div className="doc-actions-enhanced">
+                    <a href={candidate.linkedin_url} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-small">
+                      🔗 Voir profil
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-// Composant lecteur vidéo
+// Composant lecteur vidéo (conseils supprimés)
 const VideoPlayerView = ({ candidate, videoRef, onProgress, onEnd, onBack }) => (
   <div className="video-player-view">
     <div className="video-header">
@@ -607,9 +593,20 @@ const VideoPlayerView = ({ candidate, videoRef, onProgress, onEnd, onBack }) => 
           </span>
         </div>
       </div>
+      
+      {/* Actions dans le header */}
+      <div className="video-header-actions">
+        <button className="btn btn-secondary btn-small" onClick={onBack}>
+          📋 Voir le profil complet
+        </button>
+        <button className="btn btn-primary btn-small">
+          💌 Contacter le candidat
+        </button>
+      </div>
     </div>
 
-    <div className="video-container">
+    {/* Lecteur vidéo pleine largeur */}
+    <div className="video-container-full">
       <div className="video-player">
         {candidate.presentation_video?.video_file ? (
           <video
@@ -632,27 +629,6 @@ const VideoPlayerView = ({ candidate, videoRef, onProgress, onEnd, onBack }) => 
             </div>
           </div>
         )}
-      </div>
-
-      <div className="video-controls-info">
-        <div className="playback-tips">
-          <h4>💡 Conseils de visionnage</h4>
-          <ul>
-            <li>Écoutez attentivement la présentation personnelle</li>
-            <li>Notez les compétences techniques mentionnées</li>
-            <li>Observez l'aisance à l'oral et la motivation</li>
-            <li>Regardez la qualité de la présentation</li>
-          </ul>
-        </div>
-
-        <div className="video-actions">
-          <button className="btn btn-secondary" onClick={onBack}>
-            Voir le profil complet
-          </button>
-          <button className="btn btn-primary">
-            💌 Contacter le candidat
-          </button>
-        </div>
       </div>
     </div>
   </div>

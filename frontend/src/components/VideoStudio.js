@@ -660,7 +660,7 @@ const VideoStudio = ({
     }
   }, [recordedChunks, currentStep]);
 
-  // Recommencer
+  // Recommencer - MODIFIÉ pour ne plus montrer de confirmation après liaison CV
   const handleReset = () => {
     const doReset = () => {
       setCurrentStep('ready');
@@ -694,13 +694,15 @@ const VideoStudio = ({
       }
     };
 
-    if (currentStep === 'recording' || (currentStep === 'preview' && recordedChunks.length > 0)) {
+    // Seuls les cas de recording ou preview avec chunks demandent confirmation
+    if (currentStep === 'recording' || (currentStep === 'preview' && recordedChunks.length > 0 && !isVideoSaved)) {
       showConfirm(
         'Recommencer ?',
         'Êtes-vous sûr de vouloir recommencer ? Votre enregistrement actuel sera perdu.',
         doReset
       );
     } else {
+      // Pas de confirmation pour les autres cas
       doReset();
     }
   };
@@ -775,7 +777,7 @@ const VideoStudio = ({
     }
   };
 
-  // Lier la vidéo au CV
+  // Lier la vidéo au CV - MODIFIÉ pour retour automatique
   const handleLinkToCV = async () => {
     if (!currentVideoId) {
       showError(
@@ -801,11 +803,15 @@ const VideoStudio = ({
         });
       }
 
+      // MODIFIÉ : Afficher le succès et retourner à la page principale automatiquement
       showSuccess(
-  'Vidéo liée au CV ! 🎉',
-  'Parfait ! Votre vidéo de présentation a été liée à votre profil candidat avec succès. Votre profil est maintenant enrichi et plus attractif pour les recruteurs.'
-  // ✅ Plus de callback = plus de confirmation supplémentaire
-);
+        'Vidéo liée au CV ! 🎉',
+        'Parfait ! Votre vidéo de présentation a été liée à votre profil candidat avec succès. Votre profil est maintenant enrichi et plus attractif pour les recruteurs.',
+        () => {
+          // Retour automatique à la page principale après le message de succès
+          handleReset();
+        }
+      );
       
     } catch (error) {
       console.error('Link to CV error:', error);
@@ -1040,30 +1046,29 @@ const VideoStudio = ({
           )}
 
           {currentStep === 'quality-check' && (
-  <div className="controls-quality">
-    <button 
-      onClick={handleStartRecording}
-      className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
-      disabled={!isQualityReady || isUploading}
-    >
-      Start Recording
-    </button>
-    <button 
-      onClick={handleReset}
-      className="btn btn-secondary"
-      disabled={isUploading}
-    >
-      Skip Tests
-    </button>
-    <p className="help-text">
-      {isQualityReady 
-        ? 'Ready to record professional video'
-        : `Current score: ${qualityScore}/100 (recommended: 80+)`
-      }
-    </p>
-  </div>
-)}
-
+            <div className="controls-quality">
+              <button 
+                onClick={handleStartRecording}
+                className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
+                disabled={!isQualityReady || isUploading}
+              >
+                Start Recording
+              </button>
+              <button 
+                onClick={handleReset}
+                className="btn btn-secondary"
+                disabled={isUploading}
+              >
+                Skip Tests
+              </button>
+              <p className="help-text">
+                {isQualityReady 
+                  ? 'Ready to record professional video'
+                  : `Current score: ${qualityScore}/100 (recommended: 80+)`
+                }
+              </p>
+            </div>
+          )}
 
           {currentStep === 'recording' && (
             <div className="controls-recording">
@@ -1124,7 +1129,7 @@ const VideoStudio = ({
                     className="btn btn-secondary"
                     disabled={isLinkingToCV}
                   >
-                    Record New Video
+                    Return to Studio
                   </button>
                   {isLinkingToCV && (
                     <div style={{ marginTop: '10px', fontSize: '14px', color: '#1B73E8' }}>
