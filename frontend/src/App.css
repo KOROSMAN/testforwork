@@ -391,3 +391,19 @@
     padding: 10px 12px;
   }
 }
+
+/* App.css - Ajouter ça à la fin de ton fichier App.css existant */
+
+/* Wrapper pour VideoStudio */
+.video-studio-wrapper {
+  width: 100%;
+  min-height: calc(100vh - 70px);
+  background-color: #fafbfc;
+}
+
+/* S'assurer que VideoStudio prend bien toute la place */
+.video-studio-wrapper .video-studio {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}

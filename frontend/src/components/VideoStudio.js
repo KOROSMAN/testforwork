@@ -802,20 +802,10 @@ const VideoStudio = ({
       }
 
       showSuccess(
-        'Vidéo liée au CV ! 🎉',
-        'Parfait ! Votre vidéo de présentation a été liée à votre profil candidat avec succès. Votre profil est maintenant enrichi et plus attractif pour les recruteurs.',
-        () => {
-          // Proposer de recommencer ou de voir le profil
-          showConfirm(
-            'Que voulez-vous faire maintenant ?',
-            'Votre vidéo est maintenant liée à votre CV. Voulez-vous enregistrer une nouvelle vidéo ou terminer ?',
-            () => handleReset(), // Nouvelle vidéo
-            () => {}, // Terminer (juste fermer)
-            'Nouvelle vidéo',
-            'Terminer'
-          );
-        }
-      );
+  'Vidéo liée au CV ! 🎉',
+  'Parfait ! Votre vidéo de présentation a été liée à votre profil candidat avec succès. Votre profil est maintenant enrichi et plus attractif pour les recruteurs.'
+  // ✅ Plus de callback = plus de confirmation supplémentaire
+);
       
     } catch (error) {
       console.error('Link to CV error:', error);
@@ -1050,29 +1040,30 @@ const VideoStudio = ({
           )}
 
           {currentStep === 'quality-check' && (
-            <div className="controls-quality">
-              <button 
-                onClick={handleStartRecording}
-                className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
-                disabled={isUploading}
-              >
-                {isQualityReady ? 'Start Recording' : 'Record Anyway'}
-              </button>
-              <button 
-                onClick={handleReset}
-                className="btn btn-secondary"
-                disabled={isUploading}
-              >
-                Skip Tests
-              </button>
-              <p className="help-text">
-                {isQualityReady 
-                  ? 'Ready to record professional video'
-                  : `Current score: ${qualityScore}/100 (recommended: 80+)`
-                }
-              </p>
-            </div>
-          )}
+  <div className="controls-quality">
+    <button 
+      onClick={handleStartRecording}
+      className={`btn btn-large ${isQualityReady ? 'btn-success' : 'btn-secondary'}`}
+      disabled={!isQualityReady || isUploading}
+    >
+      Start Recording
+    </button>
+    <button 
+      onClick={handleReset}
+      className="btn btn-secondary"
+      disabled={isUploading}
+    >
+      Skip Tests
+    </button>
+    <p className="help-text">
+      {isQualityReady 
+        ? 'Ready to record professional video'
+        : `Current score: ${qualityScore}/100 (recommended: 80+)`
+      }
+    </p>
+  </div>
+)}
+
 
           {currentStep === 'recording' && (
             <div className="controls-recording">

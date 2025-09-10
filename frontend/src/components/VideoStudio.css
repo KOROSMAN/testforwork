@@ -4,7 +4,8 @@
   max-width: 900px;
   margin: 0 auto;
   padding: 40px 20px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+    sans-serif;
   background-color: #fafbfc;
   min-height: calc(100vh - 70px);
   color: #2d3748;
@@ -22,7 +23,7 @@
 }
 
 .video-studio-header h1 {
-  color: #1B73E8;
+  color: #1b73e8;
   font-size: 2.25rem;
   font-weight: 600;
   margin: 0 0 8px 0;
@@ -58,7 +59,7 @@
 }
 
 .recording-brief-bottom h4 {
-  color: #1B73E8;
+  color: #1b73e8;
   font-size: 1rem;
   font-weight: 600;
   margin: 0 0 16px 0;
@@ -75,7 +76,7 @@
   color: #475569;
   font-weight: 500;
   padding: 10px 12px;
-  border-left: 4px solid #1B73E8;
+  border-left: 4px solid #1b73e8;
   background: rgba(27, 115, 232, 0.05);
   border-radius: 0 6px 6px 0;
   line-height: 1.4;
@@ -100,7 +101,7 @@
 }
 
 .recording-brief-left h4 {
-  color: #1B73E8;
+  color: #1b73e8;
   font-size: 1rem;
   font-weight: 600;
   margin: 0 0 16px 0;
@@ -118,13 +119,13 @@
   color: #475569;
   font-weight: 500;
   padding: 8px 12px;
-  border-left: 4px solid #1B73E8;
+  border-left: 4px solid #1b73e8;
   background: rgba(27, 115, 232, 0.05);
   border-radius: 0 6px 6px 0;
   line-height: 1.4;
 }
 
-/* Zone vidéo */
+/* Zone vidéo - CORRECTION CAMERA PLEINE LARGEUR */
 .video-container {
   position: relative;
   display: flex;
@@ -133,24 +134,56 @@
   border-radius: 12px;
   overflow: hidden;
   flex: 1;
+  width: 100%;
+  min-height: 480px;
 }
 
 .webcam-container {
   position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .webcam {
   border-radius: 12px;
   display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  max-width: 100%;
+  min-height: 480px;
 }
 
 .video-preview {
   position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .recorded-video {
   border-radius: 12px;
   display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  max-width: 100%;
+  min-height: 480px;
+}
+
+/* Responsive pour mobile */
+@media (max-width: 768px) {
+  .video-container {
+    min-height: 360px;
+  }
+
+  .webcam,
+  .recorded-video {
+    min-height: 360px;
+  }
 }
 
 .preview-overlay {
@@ -176,7 +209,7 @@
 }
 
 .recording-brief h4 {
-  color: #1B73E8;
+  color: #1b73e8;
   font-size: 1rem;
   font-weight: 600;
   margin: 0 0 12px 0;
@@ -193,7 +226,7 @@
   color: #475569;
   font-weight: 500;
   padding: 4px 0;
-  border-left: 3px solid #1B73E8;
+  border-left: 3px solid #1b73e8;
   padding-left: 12px;
 }
 .recording-brief {
@@ -206,7 +239,7 @@
 }
 
 .recording-brief h4 {
-  color: #1B73E8;
+  color: #1b73e8;
   font-size: 1rem;
   font-weight: 600;
   margin: 0 0 12px 0;
@@ -223,7 +256,7 @@
   color: #475569;
   font-weight: 500;
   padding: 4px 0;
-  border-left: 3px solid #1B73E8;
+  border-left: 3px solid #1b73e8;
   padding-left: 12px;
 }
 
@@ -297,7 +330,7 @@
 
 .instruction-step {
   font-weight: 600;
-  color: #1B73E8;
+  color: #1b73e8;
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -363,7 +396,7 @@
 }
 
 .progress-step.active {
-  background: #1B73E8;
+  background: #1b73e8;
   transform: scaleY(1.5);
 }
 
@@ -516,7 +549,7 @@
 
 .device-group select:focus {
   outline: none;
-  border-color: #1B73E8;
+  border-color: #1b73e8;
   box-shadow: 0 0 0 3px rgba(27, 115, 232, 0.1);
 }
 
@@ -545,14 +578,26 @@
 }
 
 @keyframes blink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0.3; }
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0.3;
+  }
 }
 
 @keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.02); }
-  100% { transform: scale(1); }
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 /* Contrôles */
@@ -617,7 +662,7 @@
 }
 
 .btn-primary {
-  background-color: #1B73E8;
+  background-color: #1b73e8;
   color: white;
 }
 
@@ -848,7 +893,7 @@
 }
 
 .step.active {
-  background: #1B73E8;
+  background: #1b73e8;
   color: white;
   transform: scale(1.05);
 }
@@ -858,60 +903,60 @@
   .video-studio {
     padding: 16px;
   }
-  
+
   .video-studio-content {
     padding: 20px;
   }
-  
+
   .video-studio-header {
     padding: 24px;
   }
-  
+
   .video-studio-header h1 {
     font-size: 1.875rem;
   }
-  
+
   .webcam,
   .recorded-video {
     width: 100%;
     height: auto;
   }
-  
+
   .controls-preview,
   .controls-quality {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .btn {
     min-width: 100%;
     padding: 12px 20px;
   }
-  
+
   .btn-large {
     min-width: 100%;
     padding: 14px 20px;
     font-size: 0.9375rem;
   }
-  
+
   .status-steps {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .quality-checks-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .recording-timer {
     top: 8px;
     padding: 8px 16px;
   }
-  
+
   .timer-text {
     font-size: 1rem;
   }
-  
+
   .timer-bar {
     width: 100px;
   }
@@ -920,22 +965,22 @@
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .recording-brief-left {
     min-width: auto;
     max-width: none;
     padding: 16px;
   }
-  
+
   .recording-brief-left .brief-steps {
     gap: 8px;
   }
-  
+
   .recording-brief-left .brief-step {
     font-size: 0.8125rem;
     padding: 6px 10px;
   }
-  
+
   .interactive-instructions-bottom {
     margin-top: 12px;
   }
@@ -962,7 +1007,7 @@
     height: 40px;
     font-size: 1rem;
   }
-  
+
   .device-settings-panel {
     right: 8px;
     min-width: 250px;
